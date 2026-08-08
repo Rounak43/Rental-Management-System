@@ -5,7 +5,22 @@ import Category from '../models/Category.js';
 // @access  Public
 export const getCategories = async (req, res, next) => {
   try {
-    const categories = await Category.find({ isActive: true }).sort('name');
+    let categories = await Category.find({ isActive: true }).sort('name');
+
+    if (categories.length === 0) {
+      const defaultCategories = [
+        { name: 'Vehicles', slug: 'vehicles', description: 'Cars, bikes, scooters and electric vehicles' },
+        { name: 'Gym & Fitness', slug: 'gym', description: 'Treadmills, dumbbells and home gym equipment' },
+        { name: 'Gaming', slug: 'gaming', description: 'Consoles, VR headsets, gaming PCs and accessories' },
+        { name: 'Clothes & Fashion', slug: 'clothes', description: 'Designer tuxedos, suits, dresses and luxury watches' },
+        { name: 'Electronics', slug: 'electronics', description: 'Laptops, cameras, drones and audio gear' },
+        { name: 'Furniture', slug: 'furniture', description: 'Sofas, office chairs and home furniture' },
+        { name: 'Tools & Machinery', slug: 'tools', description: 'Power tools, pressure washers and heavy machinery' },
+      ];
+      await Category.insertMany(defaultCategories);
+      categories = await Category.find({ isActive: true }).sort('name');
+    }
+
     res.status(200).json(categories);
   } catch (error) {
     next(error);

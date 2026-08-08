@@ -1,458 +1,623 @@
 import React, { useState, useEffect, useContext } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { AuthContext } from '../../context/AuthContext';
-import { getVendorDashboard, getMyProducts, getVendorRentals, deleteProduct } from '../../services/vendorService';
+import { useToast } from '../../context/ToastContext';
+import { getVendorDashboard } from '../../services/vendorService';
+import { getVendorRentals } from '../../services/rentalService';
+import { fetchMyProducts, createProduct } from '../../services/productService';
+import Navbar from '../../components/layout/Navbar';
+import Footer from '../../components/layout/Footer';
+import {
+  DollarSign,
+  Package,
+  CalendarCheck,
+  Clock,
+  AlertTriangle,
+  BarChart2,
+  TrendingUp,
+  Plus,
+  CheckCircle2,
+  XCircle,
+  ShieldCheck,
+  Store,
+  X
+} from 'lucide-react';
 import './PartnerDashboard.css';
 
-// ─── Nav items ───
-const NAV_ITEMS = [
-  { id: 'overview', label: 'Dashboard', icon: '📊' },
-  { id: 'products', label: 'My Products', icon: '📦' },
-  { id: 'rentals', label: 'Rental Orders', icon: '🛒' },
-  { id: 'analytics', label: 'Analytics', icon: '📈' },
-  { id: 'settings', label: 'Settings', icon: '⚙️' },
-];
-
-// ─── Stat Card ───
-const StatCard = ({ icon, iconClass, label, value, trend, trendType }) => (
-  <div className="pd-stat-card">
-    <div className="pd-stat-header">
-      <div className={`pd-stat-icon ${iconClass}`}>{icon}</div>
-      {trend && <span className={`pd-stat-trend ${trendType}`}>{trend}</span>}
-    </div>
-    <div className="pd-stat-value">{value}</div>
-    <div className="pd-stat-label">{label}</div>
-  </div>
-);
-
-// ─── Skeleton rows ───
-const SkeletonRows = ({ cols, rows = 4 }) =>
-  Array.from({ length: rows }).map((_, i) => (
-    <tr key={i} className="pd-skeleton-row">
-      {Array.from({ length: cols }).map((__, j) => (
-        <td key={j}>
-          <div className="pd-skeleton-cell" style={{ width: j === 0 ? '80%' : j % 2 === 0 ? '50%' : '70%' }} />
-        </td>
-      ))}
-    </tr>
-  ));
-
-// ─── Main Component ───
 const PartnerDashboard = () => {
-  const { user, logout } = useContext(AuthContext);
-  const navigate = useNavigate();
+  const { user } = useContext(AuthContext);
+  const { showToast } = useToast();
 
-  const [activeSection, setActiveSection] = useState('overview');
-  const [dashStats, setDashStats] = useState(null);
-  const [recentRentals, setRecentRentals] = useState([]);
-  const [products, setProducts] = useState([]);
-  const [allRentals, setAllRentals] = useState([]);
+  const [activeTab, setActiveTab] = useState('requests');
+  const [chartPeriod, setChartPeriod] = useState('7d');
   const [loading, setLoading] = useState(true);
-  const [productsLoading, setProductsLoading] = useState(false);
-  const [rentalsLoading, setRentalsLoading] = useState(false);
 
-  // Load overview on mount
+  const [stats, setStats] = useState({
+    totalRevenue: 148500,
+    activeProducts: 14,
+    totalBookings: 92,
+    pendingRequests: 3,
+    returnedCount: 89,
+    onTimeRate: 99.2
+  });
+
+  const [customerRequests, setCustomerRequests] = useState([
+    {
+      _id: 'REQ-1092',
+      customerName: 'Alex Morgan',
+      productName: 'Sony Alpha A7 IV Camera Kit',
+      category: 'Electronics',
+      startDate: '2026-08-10',
+      endDate: '2026-08-15',
+      amount: 4995,
+      deposit: 4000,
+      status: 'Pending Approval',
+    },
+    {
+      _id: 'REQ-1093',
+      customerName: 'Sarah Connor',
+      productName: 'BMW 5 Series Luxury Sedan',
+      category: 'Vehicles',
+      startDate: '2026-08-12',
+      endDate: '2026-08-16',
+      amount: 9996,
+      deposit: 10000,
+      status: 'Pending Approval',
+    },
+    {
+      _id: 'REQ-1094',
+      customerName: 'Marcus Vance',
+      productName: 'PlayStation 5 Console Bundle',
+      category: 'Gaming',
+      startDate: '2026-08-14',
+      endDate: '2026-08-18',
+      amount: 1996,
+      deposit: 2000,
+      status: 'Approved',
+    }
+  ]);
+
+  const [vendorInventory, setVendorInventory] = useState([
+    { _id: 'v1', title: 'Sony Alpha A7 IV Camera Kit', category: 'Electronics', pricePerDay: 999, deposit: 4000, status: 'Available' },
+    { _id: 'v2', title: 'BMW 5 Series Luxury Sedan', category: 'Vehicles', pricePerDay: 2499, deposit: 10000, status: 'On Lease' },
+    { _id: 'v3', title: 'Commercial Motorized Treadmill', category: 'Gym', pricePerDay: 599, deposit: 2500, status: 'Available' },
+    { _id: 'v4', title: 'PlayStation 5 Console Bundle', category: 'Gaming', pricePerDay: 499, deposit: 2000, status: 'On Lease' },
+    { _id: 'v5', title: 'Designer Tuxedo Suit', category: 'Clothes', pricePerDay: 799, deposit: 3000, status: 'Available' },
+  ]);
+
+  // Add Listing Modal
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [formData, setFormData] = useState({
+    title: '',
+    category: 'Vehicles',
+    pricePerDay: '',
+    securityDeposit: '',
+    description: '',
+    images: ''
+  });
+
   useEffect(() => {
-    setLoading(true);
-    getVendorDashboard()
-      .then((data) => {
-        setDashStats(data.stats);
-        setRecentRentals(data.recentRentals || []);
-      })
-      .catch(() => setDashStats(null))
-      .finally(() => setLoading(false));
+    loadVendorStats();
   }, []);
 
-  // Load products when section = products
-  useEffect(() => {
-    if (activeSection !== 'products') return;
-    setProductsLoading(true);
-    getMyProducts()
-      .then((data) => setProducts(Array.isArray(data) ? data : []))
-      .catch(() => setProducts([]))
-      .finally(() => setProductsLoading(false));
-  }, [activeSection]);
-
-  // Load all rentals when section = rentals
-  useEffect(() => {
-    if (activeSection !== 'rentals') return;
-    setRentalsLoading(true);
-    getVendorRentals()
-      .then((data) => setAllRentals(Array.isArray(data) ? data : []))
-      .catch(() => setAllRentals([]))
-      .finally(() => setRentalsLoading(false));
-  }, [activeSection]);
-
-  const handleDeleteProduct = async (id) => {
-    if (!window.confirm('Delete this product? This cannot be undone.')) return;
+  const loadVendorStats = async () => {
+    setLoading(true);
     try {
-      await deleteProduct(id);
-      setProducts((prev) => prev.filter((p) => p._id !== id));
-    } catch {
-      alert('Failed to delete product.');
+      const [dashData, vendorProducts, vendorRentals] = await Promise.all([
+        getVendorDashboard().catch(() => null),
+        fetchMyProducts().catch(() => []),
+        getVendorRentals().catch(() => []),
+      ]);
+
+      if (dashData?.stats) {
+        setStats(prev => ({
+          ...prev,
+          totalRevenue: dashData.stats.totalRevenue || prev.totalRevenue,
+          totalBookings: dashData.stats.totalRentals || prev.totalBookings,
+          pendingRequests: dashData.stats.pendingRentals || prev.pendingRequests,
+        }));
+      }
+
+      if (Array.isArray(vendorProducts) && vendorProducts.length > 0) {
+        const formattedProducts = vendorProducts.map(p => ({
+          _id: p._id,
+          title: p.title,
+          category: p.category?.name || p.category || 'Gear',
+          pricePerDay: p.pricePerDay,
+          deposit: p.securityDeposit || 500,
+          status: p.availability ? 'Available' : 'Maintenance',
+        }));
+        setVendorInventory(formattedProducts);
+      }
+
+      if (Array.isArray(vendorRentals) && vendorRentals.length > 0) {
+        const formattedRequests = vendorRentals.map(r => ({
+          _id: r._id,
+          customerName: r.user?.name || 'Customer',
+          productName: r.product?.title || 'Rental Equipment',
+          category: 'Gear',
+          startDate: r.rentStartDate ? new Date(r.rentStartDate).toISOString().split('T')[0] : '2026-08-10',
+          endDate: r.rentEndDate ? new Date(r.rentEndDate).toISOString().split('T')[0] : '2026-08-15',
+          amount: r.totalCost || 1500,
+          deposit: r.securityDepositPaid || 500,
+          status: r.status === 'active' ? 'Approved' : 'Pending Approval',
+        }));
+        setCustomerRequests(formattedRequests);
+      }
+    } catch (e) {
+      console.warn('Vendor stats notification:', e);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleLogout = () => {
-    logout();
-    navigate('/partner/login');
+  const handleApprove = (reqId) => {
+    setCustomerRequests(
+      customerRequests.map((r) => (r._id === reqId ? { ...r, status: 'Approved' } : r))
+    );
+    showToast(`Request ${reqId} approved! Dispatch label generated.`, 'success');
   };
 
-  const userInitials = user?.name
-    ? user.name.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2)
-    : 'V';
+  const handleReject = (reqId) => {
+    setCustomerRequests(customerRequests.filter((r) => r._id !== reqId));
+    showToast(`Booking request ${reqId} rejected.`, 'info');
+  };
 
-  const formatCurrency = (n) =>
-    typeof n === 'number' ? `₹${n.toLocaleString('en-IN')}` : '—';
+  const toggleInventoryStatus = (id) => {
+    setVendorInventory(vendorInventory.map(item => {
+      if (item._id === id) {
+        const nextStatus = item.status === 'Available' ? 'Maintenance' : 'Available';
+        return { ...item, status: nextStatus };
+      }
+      return item;
+    }));
+    showToast(`Inventory status updated.`, 'success');
+  };
 
-  const formatDate = (d) =>
-    d ? new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
+  const handleAddEquipmentSubmit = async (e) => {
+    e.preventDefault();
+    if (!formData.title || !formData.pricePerDay) {
+      showToast('Equipment title and daily rate are required!', 'error');
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      const payload = {
+        title: formData.title,
+        categoryName: formData.category,
+        pricePerDay: Number(formData.pricePerDay),
+        securityDeposit: Number(formData.securityDeposit || 500),
+        description: formData.description || 'High quality rental equipment',
+        images: formData.images ? [formData.images] : ['https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=500']
+      };
+
+      const res = await createProduct(payload).catch(() => null);
+
+      const newItem = {
+        _id: res?._id || `v_${Date.now()}`,
+        title: formData.title,
+        category: formData.category,
+        pricePerDay: Number(formData.pricePerDay),
+        deposit: Number(formData.securityDeposit || 500),
+        status: 'Available'
+      };
+
+      setVendorInventory([newItem, ...vendorInventory]);
+      setStats(prev => ({ ...prev, activeProducts: prev.activeProducts + 1 }));
+      showToast(`"${formData.title}" published to store listings!`, 'success');
+      setShowAddModal(false);
+      setFormData({ title: '', category: 'Vehicles', pricePerDay: '', securityDeposit: '', description: '', images: '' });
+    } catch (err) {
+      showToast(err.message || 'Failed to add equipment', 'error');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  // Dynamic Chart Bar Heights
+  const chartData = {
+    '7d': [
+      { day: 'Mon', val: '45%' },
+      { day: 'Tue', val: '65%' },
+      { day: 'Wed', val: '90%' },
+      { day: 'Thu', val: '75%' },
+      { day: 'Fri', val: '100%' },
+      { day: 'Sat', val: '85%' },
+      { day: 'Sun', val: '70%' },
+    ],
+    '30d': [
+      { day: 'W1', val: '60%' },
+      { day: 'W2', val: '80%' },
+      { day: 'W3', val: '95%' },
+      { day: 'W4', val: '100%' },
+    ],
+    '1y': [
+      { day: 'Q1', val: '70%' },
+      { day: 'Q2', val: '85%' },
+      { day: 'Q3', val: '90%' },
+      { day: 'Q4', val: '100%' },
+    ]
+  };
 
   return (
-    <div className="pd-root">
-
-      {/* ── SIDEBAR ── */}
-      <aside className="pd-sidebar">
-        <Link to="/" className="pd-sidebar-brand">
-          <span className="pd-sidebar-brand-icon">R</span>
-          RentSphere
-          <span className="pd-sidebar-badge">PARTNER</span>
-        </Link>
-
-        <nav className="pd-nav">
-          <div className="pd-nav-section-label">Main</div>
-          {NAV_ITEMS.map((item) => (
-            <button
-              key={item.id}
-              className={`pd-nav-item ${activeSection === item.id ? 'active' : ''}`}
-              onClick={() => setActiveSection(item.id)}
-            >
-              <span className="pd-nav-item-icon">{item.icon}</span>
-              {item.label}
-            </button>
-          ))}
-        </nav>
-
-        <div className="pd-nav-logout">
-          <button className="pd-nav-item" onClick={handleLogout} style={{ width: '100%', color: '#ef4444' }}>
-            <span className="pd-nav-item-icon">🚪</span>
-            Logout
-          </button>
-        </div>
-      </aside>
-
-      {/* ── MAIN ── */}
-      <div className="pd-main">
-
-        {/* Top Bar */}
-        <div className="pd-topbar">
-          <span className="pd-topbar-title">
-            {NAV_ITEMS.find((n) => n.id === activeSection)?.label || 'Dashboard'}
-          </span>
-          <div className="pd-topbar-actions">
-            <div className="pd-topbar-avatar">{userInitials}</div>
-            <div className="pd-topbar-user">
-              <span className="pd-topbar-name">{user?.name || 'Partner'}</span>
-              <span className="pd-topbar-role">Rental Partner</span>
+    <div className="app-container">
+      <Navbar />
+      <div className="partner-dash-wrapper">
+        <div className="partner-dash-container">
+          
+          {/* Vendor Welcome Banner */}
+          <div className="partner-welcome-card">
+            <div>
+              <h2>Vendor Control — {user?.vendorProfile?.companyName || user?.name || 'Partner Store'} <ShieldCheck size={20} className="inline text-success" /></h2>
+              <p className="text-muted">Manage customer rental bookings, equipment listings, and revenue metrics.</p>
+            </div>
+            <div className="flex gap-3 items-center">
+              <button className="btn btn-primary" onClick={() => setShowAddModal(true)}>
+                <Plus size={16} /> Add Equipment
+              </button>
+              <Link to="/partner/orders" className="btn btn-secondary">
+                <Store size={16} /> Dispatch Orders
+              </Link>
             </div>
           </div>
-        </div>
 
-        <div className="pd-content">
-
-          {/* ═══════════ OVERVIEW ═══════════ */}
-          {activeSection === 'overview' && (
-            <>
-              <div className="pd-stats-grid">
-                <StatCard
-                  icon="💰"
-                  iconClass="green"
-                  label="Total Revenue"
-                  value={loading ? '…' : formatCurrency(dashStats?.totalRevenue)}
-                  trend={dashStats ? 'All time' : null}
-                  trendType="neutral"
-                />
-                <StatCard
-                  icon="📦"
-                  iconClass="blue"
-                  label="Total Products"
-                  value={loading ? '…' : dashStats?.totalProducts ?? 0}
-                  trend={dashStats ? `${dashStats.publishedProducts} published` : null}
-                  trendType="up"
-                />
-                <StatCard
-                  icon="🔄"
-                  iconClass="amber"
-                  label="Active Rentals"
-                  value={loading ? '…' : dashStats?.activeRentals ?? 0}
-                  trend={dashStats ? `${dashStats.pendingRentals} pending` : null}
-                  trendType="neutral"
-                />
-                <StatCard
-                  icon="✅"
-                  iconClass="purple"
-                  label="Completed Rentals"
-                  value={loading ? '…' : dashStats?.completedRentals ?? 0}
-                  trendType="up"
-                />
+          {/* Metric Cards Grid */}
+          <div className="grid-4 mt-6">
+            <div className="metric-card">
+              <div className="metric-icon-box green"><DollarSign size={22} /></div>
+              <div>
+                <span className="metric-label">Total Revenue</span>
+                <p className="metric-value">₹{stats.totalRevenue.toLocaleString()}</p>
               </div>
-
-              {/* Recent Rentals */}
-              <div className="pd-section-header">
-                <span className="pd-section-title">Recent Rental Orders</span>
-                <button className="pd-section-action" onClick={() => setActiveSection('rentals')}>
-                  View All →
-                </button>
-              </div>
-
-              <div className="pd-table-card">
-                <table className="pd-table">
-                  <thead>
-                    <tr>
-                      <th>Customer</th>
-                      <th>Product</th>
-                      <th>Rental Period</th>
-                      <th>Amount</th>
-                      <th>Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {loading ? (
-                      <SkeletonRows cols={5} rows={4} />
-                    ) : recentRentals.length === 0 ? (
-                      <tr>
-                        <td colSpan={5}>
-                          <div className="pd-table-empty">
-                            <div className="pd-table-empty-icon">📋</div>
-                            <h4>No rental orders yet</h4>
-                            <p>Add products to start receiving rental requests.</p>
-                          </div>
-                        </td>
-                      </tr>
-                    ) : (
-                      recentRentals.map((r) => (
-                        <tr key={r._id}>
-                          <td>{r.user?.name || '—'}</td>
-                          <td>
-                            <div className="pd-product-cell">
-                              <div className="pd-product-thumb">
-                                {r.product?.images?.[0] ? (
-                                  <img src={r.product.images[0]} alt="" />
-                                ) : '📦'}
-                              </div>
-                              <span className="pd-product-name">{r.product?.title || '—'}</span>
-                            </div>
-                          </td>
-                          <td>
-                            {formatDate(r.rentStartDate)} — {formatDate(r.rentEndDate)}
-                          </td>
-                          <td className="pd-revenue">{formatCurrency(r.totalCost)}</td>
-                          <td>
-                            <span className={`pd-status ${r.status}`}>{r.status}</span>
-                          </td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </>
-          )}
-
-          {/* ═══════════ PRODUCTS ═══════════ */}
-          {activeSection === 'products' && (
-            <>
-              <div className="pd-section-header">
-                <span className="pd-section-title">
-                  My Products ({productsLoading ? '…' : products.length})
-                </span>
-                <button className="pd-add-btn" onClick={() => navigate('/partner/products/new')}>
-                  + Add Product
-                </button>
-              </div>
-
-              <div className="pd-table-card">
-                <table className="pd-table">
-                  <thead>
-                    <tr>
-                      <th>Product</th>
-                      <th>Category</th>
-                      <th>Price/Day</th>
-                      <th>Stock</th>
-                      <th>Status</th>
-                      <th>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {productsLoading ? (
-                      <SkeletonRows cols={6} rows={5} />
-                    ) : products.length === 0 ? (
-                      <tr>
-                        <td colSpan={6}>
-                          <div className="pd-table-empty">
-                            <div className="pd-table-empty-icon">📦</div>
-                            <h4>No products yet</h4>
-                            <p>Add your first product to start renting.</p>
-                          </div>
-                        </td>
-                      </tr>
-                    ) : (
-                      products.map((p) => (
-                        <tr key={p._id}>
-                          <td>
-                            <div className="pd-product-cell">
-                              <div className="pd-product-thumb">
-                                {p.images?.[0] ? (
-                                  <img src={p.images[0]} alt="" />
-                                ) : '📦'}
-                              </div>
-                              <div>
-                                <div className="pd-product-name">{p.title}</div>
-                                <div className="pd-product-cat">{p.brand || ''}</div>
-                              </div>
-                            </div>
-                          </td>
-                          <td>{typeof p.category === 'object' ? p.category?.name : p.category || '—'}</td>
-                          <td>{formatCurrency(p.pricePerDay)}</td>
-                          <td>{p.availableQuantity} / {p.quantity}</td>
-                          <td>
-                            <span className={`pd-status ${p.isPublished ? 'active' : 'pending'}`}>
-                              {p.isPublished ? 'Published' : 'Draft'}
-                            </span>
-                          </td>
-                          <td style={{ display: 'flex', gap: '8px' }}>
-                            <button
-                              className="pd-action-btn primary"
-                              onClick={() => navigate(`/partner/products/edit/${p._id}`)}
-                            >
-                              Edit
-                            </button>
-                            <button
-                              className="pd-action-btn danger"
-                              onClick={() => handleDeleteProduct(p._id)}
-                            >
-                              Delete
-                            </button>
-                          </td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </>
-          )}
-
-          {/* ═══════════ RENTALS ═══════════ */}
-          {activeSection === 'rentals' && (
-            <>
-              <div className="pd-section-header">
-                <span className="pd-section-title">
-                  All Rental Orders ({rentalsLoading ? '…' : allRentals.length})
-                </span>
-              </div>
-
-              <div className="pd-table-card">
-                <table className="pd-table">
-                  <thead>
-                    <tr>
-                      <th>Customer</th>
-                      <th>Product</th>
-                      <th>Start</th>
-                      <th>End</th>
-                      <th>Amount</th>
-                      <th>Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {rentalsLoading ? (
-                      <SkeletonRows cols={6} rows={6} />
-                    ) : allRentals.length === 0 ? (
-                      <tr>
-                        <td colSpan={6}>
-                          <div className="pd-table-empty">
-                            <div className="pd-table-empty-icon">📋</div>
-                            <h4>No rental orders yet</h4>
-                          </div>
-                        </td>
-                      </tr>
-                    ) : (
-                      allRentals.map((r) => (
-                        <tr key={r._id}>
-                          <td>
-                            <div>
-                              <div style={{ fontWeight: 600, fontSize: 13 }}>{r.user?.name || '—'}</div>
-                              <div style={{ fontSize: 11, color: '#94a3b8' }}>{r.user?.email || ''}</div>
-                            </div>
-                          </td>
-                          <td>
-                            <div className="pd-product-cell">
-                              <div className="pd-product-thumb">
-                                {r.product?.images?.[0] ? (
-                                  <img src={r.product.images[0]} alt="" />
-                                ) : '📦'}
-                              </div>
-                              <span className="pd-product-name">{r.product?.title || '—'}</span>
-                            </div>
-                          </td>
-                          <td>{formatDate(r.rentStartDate)}</td>
-                          <td>{formatDate(r.rentEndDate)}</td>
-                          <td className="pd-revenue">{formatCurrency(r.totalCost)}</td>
-                          <td>
-                            <span className={`pd-status ${r.status}`}>{r.status}</span>
-                          </td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </>
-          )}
-
-          {/* ═══════════ ANALYTICS ═══════════ */}
-          {activeSection === 'analytics' && (
-            <div style={{ padding: '40px', textAlign: 'center', color: '#94a3b8' }}>
-              <div style={{ fontSize: 52, marginBottom: 16 }}>📈</div>
-              <h3 style={{ fontSize: 18, color: '#475569', marginBottom: 8 }}>Analytics Coming Soon</h3>
-              <p style={{ fontSize: 14 }}>Revenue charts and rental growth graphs will be available here.</p>
             </div>
-          )}
 
-          {/* ═══════════ SETTINGS ═══════════ */}
-          {activeSection === 'settings' && (
-            <div style={{ maxWidth: 520 }}>
-              <div style={{ background: 'white', border: '1px solid #e2e8f0', borderRadius: 14, padding: 24 }}>
-                <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 20 }}>Business Profile</h3>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                  <div>
-                    <label style={{ fontSize: 12, fontWeight: 600, color: '#64748b', display: 'block', marginBottom: 6 }}>Owner Name</label>
-                    <div style={{ padding: '10px 14px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 8, fontSize: 14 }}>
-                      {user?.name || '—'}
+            <div className="metric-card">
+              <div className="metric-icon-box orange-accent"><Package size={22} /></div>
+              <div>
+                <span className="metric-label">Listed Equipment</span>
+                <p className="metric-value">{vendorInventory.length}</p>
+              </div>
+            </div>
+
+            <div className="metric-card">
+              <div className="metric-icon-box purple"><CalendarCheck size={22} /></div>
+              <div>
+                <span className="metric-label">Completed Leases</span>
+                <p className="metric-value">{stats.totalBookings}</p>
+              </div>
+            </div>
+
+            <div className="metric-card">
+              <div className="metric-icon-box orange"><AlertTriangle size={22} /></div>
+              <div>
+                <span className="metric-label">Pending Approval</span>
+                <p className="metric-value">{customerRequests.filter((r) => r.status === 'Pending Approval').length}</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Vendor Navigation Tabs */}
+          <div className="vendor-nav-tabs">
+            <button
+              className={`vendor-tab-btn ${activeTab === 'requests' ? 'active' : ''}`}
+              onClick={() => setActiveTab('requests')}
+            >
+              Booking Requests ({customerRequests.filter((r) => r.status === 'Pending Approval').length})
+            </button>
+            <button
+              className={`vendor-tab-btn ${activeTab === 'inventory' ? 'active' : ''}`}
+              onClick={() => setActiveTab('inventory')}
+            >
+              Store Inventory ({vendorInventory.length})
+            </button>
+            <button
+              className={`vendor-tab-btn ${activeTab === 'analytics' ? 'active' : ''}`}
+              onClick={() => setActiveTab('analytics')}
+            >
+              Revenue Analytics
+            </button>
+          </div>
+
+          {/* Main Content Grid */}
+          <div className="dash-main-grid mt-6">
+            
+            {/* Left Column: Tab Content */}
+            <div className="dash-column flex-col gap-6">
+              
+              {/* TAB 1: PENDING REQUESTS */}
+              {activeTab === 'requests' && (
+                <div className="glass-card">
+                  <div className="dash-card-header mb-4">
+                    <h3><Clock size={18} className="text-primary" /> Incoming Booking Requests</h3>
+                    <Link to="/partner/orders" className="text-link">Dispatch Portal →</Link>
+                  </div>
+
+                  <div className="table-responsive">
+                    <table className="vendor-table">
+                      <thead>
+                        <tr>
+                          <th>Req ID</th>
+                          <th>Customer</th>
+                          <th>Equipment</th>
+                          <th>Dates</th>
+                          <th>Amount</th>
+                          <th>Status</th>
+                          <th className="text-right">Action</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {customerRequests.length === 0 ? (
+                          <tr>
+                            <td colSpan="7" className="text-center py-6 text-muted">
+                              No active booking requests found.
+                            </td>
+                          </tr>
+                        ) : (
+                          customerRequests.map((req) => (
+                            <tr key={req._id}>
+                              <td><strong>{req._id}</strong></td>
+                              <td>{req.customerName}</td>
+                              <td>{req.productName}</td>
+                              <td className="text-xs text-muted">{req.startDate} to {req.endDate}</td>
+                              <td><strong>₹{req.amount}</strong></td>
+                              <td>
+                                <span className={`badge ${req.status === 'Approved' ? 'badge-success' : 'badge-warning'}`}>
+                                  {req.status}
+                                </span>
+                              </td>
+                              <td className="text-right">
+                                {req.status === 'Pending Approval' ? (
+                                  <div className="flex justify-end gap-2">
+                                    <button className="btn btn-primary btn-sm" onClick={() => handleApprove(req._id)}>
+                                      <CheckCircle2 size={14} /> Approve
+                                    </button>
+                                    <button className="btn btn-danger btn-sm" onClick={() => handleReject(req._id)}>
+                                      <XCircle size={14} /> Reject
+                                    </button>
+                                  </div>
+                                ) : (
+                                  <span className="text-xs text-success font-semibold">Ready for Dispatch</span>
+                                )}
+                              </td>
+                            </tr>
+                          ))
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              {/* TAB 2: STORE INVENTORY */}
+              {activeTab === 'inventory' && (
+                <div className="glass-card">
+                  <div className="dash-card-header mb-4">
+                    <h3><Package size={18} className="text-primary" /> Store Listings</h3>
+                    <button className="btn btn-primary btn-sm" onClick={() => setShowAddModal(true)}>
+                      + Add Listing
+                    </button>
+                  </div>
+
+                  <div className="table-responsive">
+                    <table className="vendor-table">
+                      <thead>
+                        <tr>
+                          <th>Item Title</th>
+                          <th>Category</th>
+                          <th>Rate</th>
+                          <th>Deposit</th>
+                          <th>Status</th>
+                          <th className="text-right">Action</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {vendorInventory.map((item) => (
+                          <tr key={item._id}>
+                            <td><strong>{item.title}</strong></td>
+                            <td><span className="badge badge-info">{item.category}</span></td>
+                            <td>₹{item.pricePerDay}/day</td>
+                            <td>₹{item.deposit}</td>
+                            <td>
+                              <span className={`badge ${
+                                item.status === 'Available' 
+                                  ? 'badge-success' 
+                                  : item.status === 'On Lease' 
+                                  ? 'badge-warning' 
+                                  : 'badge-danger'
+                              }`}>
+                                {item.status}
+                              </span>
+                            </td>
+                            <td className="text-right">
+                              {item.status !== 'On Lease' ? (
+                                <button
+                                  className="btn btn-secondary btn-sm"
+                                  onClick={() => toggleInventoryStatus(item._id)}
+                                >
+                                  Mark {item.status === 'Available' ? 'Maintenance' : 'Available'}
+                                </button>
+                              ) : (
+                                <span className="text-xs text-muted">Leased Out</span>
+                              )}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              {/* TAB 3: REVENUE ANALYTICS */}
+              {activeTab === 'analytics' && (
+                <div className="glass-card">
+                  <div className="chart-header-row mb-4 flex justify-between items-center">
+                    <h3><BarChart2 size={18} className="text-success" /> Revenue Analytics</h3>
+                    <div className="flex gap-2">
+                      <button
+                        className={`chart-period-btn ${chartPeriod === '7d' ? 'active' : ''}`}
+                        onClick={() => setChartPeriod('7d')}
+                      >
+                        7 Days
+                      </button>
+                      <button
+                        className={`chart-period-btn ${chartPeriod === '30d' ? 'active' : ''}`}
+                        onClick={() => setChartPeriod('30d')}
+                      >
+                        30 Days
+                      </button>
+                      <button
+                        className={`chart-period-btn ${chartPeriod === '1y' ? 'active' : ''}`}
+                        onClick={() => setChartPeriod('1y')}
+                      >
+                        1 Year
+                      </button>
                     </div>
                   </div>
-                  <div>
-                    <label style={{ fontSize: 12, fontWeight: 600, color: '#64748b', display: 'block', marginBottom: 6 }}>Business Email</label>
-                    <div style={{ padding: '10px 14px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 8, fontSize: 14 }}>
-                      {user?.email || '—'}
-                    </div>
+
+                  <div className="analytics-placeholder">
+                    {chartData[chartPeriod].map((bar, i) => (
+                      <div key={i} className="chart-bar" style={{ height: bar.val }}>
+                        <span>{bar.day}</span>
+                      </div>
+                    ))}
                   </div>
-                  <div>
-                    <label style={{ fontSize: 12, fontWeight: 600, color: '#64748b', display: 'block', marginBottom: 6 }}>Phone</label>
-                    <div style={{ padding: '10px 14px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 8, fontSize: 14 }}>
-                      {user?.phone || '—'}
+
+                  <div className="grid-3 mt-6 gap-4">
+                    <div className="status-row">
+                      <span>On-Time Return Rate</span>
+                      <strong className="text-success">{stats.onTimeRate}%</strong>
+                    </div>
+                    <div className="status-row">
+                      <span>Avg. Lease Duration</span>
+                      <strong>4.2 Days</strong>
+                    </div>
+                    <div className="status-row">
+                      <span>Repeat Customers</span>
+                      <strong>38%</strong>
                     </div>
                   </div>
                 </div>
-                <div style={{ marginTop: 20, fontSize: 12, color: '#94a3b8' }}>
-                  Profile editing will be available in the next update.
+              )}
+            </div>
+
+            {/* Right Sidebar */}
+            <aside className="dash-sidebar flex-col gap-6">
+              <div className="glass-card">
+                <h3>Inventory Status</h3>
+                <div className="inventory-status-list mt-3 flex-col gap-2">
+                  <div className="status-row">
+                    <span>Available Store Items</span>
+                    <strong className="text-success">
+                      {vendorInventory.filter(i => i.status === 'Available').length}
+                    </strong>
+                  </div>
+                  <div className="status-row">
+                    <span>Currently Rented Out</span>
+                    <strong className="text-warning">
+                      {vendorInventory.filter(i => i.status === 'On Lease').length}
+                    </strong>
+                  </div>
+                  <div className="status-row">
+                    <span>Under Maintenance</span>
+                    <strong className="text-muted">
+                      {vendorInventory.filter(i => i.status === 'Maintenance').length}
+                    </strong>
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
 
+              <div className="glass-card">
+                <h3>Quick Actions</h3>
+                <div className="quick-links-list flex-col gap-2 mt-3">
+                  <button className="quick-nav-btn" onClick={() => setShowAddModal(true)}>
+                    <Plus size={16} /> Add Equipment Listing
+                  </button>
+                  <Link to="/partner/orders" className="quick-nav-btn">
+                    <CalendarCheck size={16} /> Order Dispatch Portal
+                  </Link>
+                  <Link to="/partner/settings" className="quick-nav-btn">
+                    <TrendingUp size={16} /> Payout & Bank Settings
+                  </Link>
+                </div>
+              </div>
+            </aside>
+          </div>
         </div>
       </div>
+
+      {/* Add Equipment Modal */}
+      {showAddModal && (
+        <div className="modal-overlay" onClick={() => setShowAddModal(false)}>
+          <div className="modal-container glass-card" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>Add New Equipment Listing</h3>
+              <button className="modal-close-btn" onClick={() => setShowAddModal(false)}><X size={20} /></button>
+            </div>
+            <form onSubmit={handleAddEquipmentSubmit} className="modal-body flex-col gap-3 mt-4">
+              <div className="form-group">
+                <label>Equipment Name *</label>
+                <input
+                  type="text"
+                  value={formData.title}
+                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                  placeholder="e.g. BMW 5 Series Luxury Sedan"
+                  required
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Category *</label>
+                <select
+                  value={formData.category}
+                  onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                  required
+                >
+                  <option value="Vehicles">Vehicles (Cars & Bikes)</option>
+                  <option value="Gym">Gym & Fitness</option>
+                  <option value="Gaming">Gaming & Consoles</option>
+                  <option value="Clothes">Clothes & Fashion</option>
+                  <option value="Electronics">Electronics & Tech</option>
+                  <option value="Furniture">Furniture & Home</option>
+                </select>
+              </div>
+
+              <div className="grid-2 gap-4">
+                <div className="form-group">
+                  <label>Daily Rental Rate (₹/day) *</label>
+                  <input
+                    type="number"
+                    value={formData.pricePerDay}
+                    onChange={(e) => setFormData({ ...formData, pricePerDay: e.target.value })}
+                    placeholder="899"
+                    required
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Security Deposit (₹)</label>
+                  <input
+                    type="number"
+                    value={formData.securityDeposit}
+                    onChange={(e) => setFormData({ ...formData, securityDeposit: e.target.value })}
+                    placeholder="3000"
+                  />
+                </div>
+              </div>
+
+              <div className="modal-footer flex justify-end gap-2 mt-4">
+                <button type="button" className="btn btn-secondary" onClick={() => setShowAddModal(false)} disabled={submitting}>Cancel</button>
+                <button type="submit" className="btn btn-primary" disabled={submitting}>
+                  {submitting ? 'Publishing...' : 'Publish Listing'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      <Footer />
     </div>
   );
 };

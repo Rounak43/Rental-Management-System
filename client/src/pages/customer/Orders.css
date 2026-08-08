@@ -1,0 +1,97 @@
+.orders-page-wrapper {
+  padding: 2.5rem 1.5rem;
+  min-height: calc(100vh - 160px);
+}
+
+.orders-container {
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+.orders-header {
+  margin-bottom: 2rem;
+}
+
+.orders-header h2 {
+  font-size: 1.85rem;
+  font-weight: 800;
+}
+
+.order-card {
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.order-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 0.85rem;
+  border-bottom: 1px solid var(--surface-border);
+}
+
+.order-id-tag {
+  font-weight: 800;
+  color: var(--primary-color);
+  font-size: 0.95rem;
+}
+
+.order-badges {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.order-card-body {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.order-img {
+  width: 80px;
+  height: 80px;
+  object-fit: cover;
+  border-radius: var(--border-radius-md);
+}
+
+.order-details {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.order-details h3 {
+  font-size: 1.15rem;
+  font-weight: 700;
+}
+
+.order-duration {
+  font-size: 0.88rem;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.order-price-col {
+  text-align: right;
+}
+
+.order-total {
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: var(--primary-color);
+  display: block;
+}
+
+.order-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  padding-top: 0.85rem;
+  border-top: 1px solid var(--surface-border);
+}

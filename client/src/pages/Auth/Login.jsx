@@ -1,248 +1,152 @@
-import React, { useState, useContext, useEffect } from 'react';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
+import React, { useState, useContext } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { AuthContext } from '../../context/AuthContext';
+import { useToast } from '../../context/ToastContext';
+import { Mail, Lock, LogIn, ArrowRight } from 'lucide-react';
+import Navbar from '../../components/layout/Navbar';
+import Footer from '../../components/layout/Footer';
 import './Login.css';
 
 const Login = () => {
+  const { loginWithEmail, loginWithGoogle, user, clearStaleSession } = useContext(AuthContext);
+  const toast = useToast();
   const navigate = useNavigate();
-  const location = useLocation();
-  const { user, login } = useContext(AuthContext);
 
-  const [showPassword, setShowPassword] = useState(false);
-  const [formData, setFormData] = useState({ email: '', password: '', remember: false });
-  const [errors, setErrors] = useState({});
-  const [serverError, setServerError] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
 
-  // Redirect if already logged in
-  useEffect(() => {
-    if (user) {
-      if (user.role === 'vendor') navigate('/partner/dashboard', { replace: true });
-      else navigate('/dashboard', { replace: true });
-    }
-  }, [user, navigate]);
-
-  const handleChange = (e) => {
-    const { name, value, type, checked } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: type === 'checkbox' ? checked : value }));
-    if (errors[name]) setErrors((prev) => ({ ...prev, [name]: '' }));
-    setServerError('');
-  };
-
-  const validateForm = () => {
-    const newErrors = {};
-    if (!formData.email.trim()) {
-      newErrors.email = 'Email address is required';
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      newErrors.email = 'Please enter a valid email address';
-    }
-    if (!formData.password) {
-      newErrors.password = 'Password is required';
-    }
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
+  React.useEffect(() => {
+    clearStaleSession();
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!validateForm()) return;
-
-    setIsLoading(true);
-    setServerError('');
+    if (!email || !password) {
+      setErrorMsg('Please enter both email and password.');
+      return;
+    }
 
     try {
-      const data = await login(formData.email, formData.password);
-
-      // Role-based redirect
-      if (data.role === 'vendor') {
-        navigate('/partner/dashboard', { replace: true });
+      setLoading(true);
+      setErrorMsg('');
+      const loggedUser = await loginWithEmail(email, password, 'customer');
+      toast.success(`Welcome back, ${loggedUser.name || 'User'}!`);
+      if (loggedUser.role === 'vendor') {
+        navigate('/partner/dashboard');
       } else {
-        navigate('/dashboard', { replace: true });
+        navigate('/dashboard');
       }
-    } catch (error) {
-      setServerError(
-        error.response?.data?.message || error.message || 'Login failed. Please try again.'
-      );
+    } catch (err) {
+      setErrorMsg(err.message || 'Login failed. Please check your credentials.');
+      toast.error(err.message || 'Login failed');
     } finally {
-      setIsLoading(false);
+      setLoading(false);
+    }
+  };
+
+  const handleGoogleSignIn = async () => {
+    try {
+      setLoading(true);
+      setErrorMsg('');
+      const loggedUser = await loginWithGoogle('customer');
+      toast.success(`Logged in with Google as ${loggedUser.name}!`);
+      if (loggedUser.role === 'vendor') {
+        navigate('/partner/dashboard');
+      } else {
+        navigate('/dashboard');
+      }
+    } catch (err) {
+      setErrorMsg(err.message || 'Google authentication failed.');
+      toast.error(err.message || 'Google sign-in error');
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <div className="login-page">
-
-      {/* ── LEFT VISUAL PANEL ── */}
-      <div className="login-visual">
-        <Link to="/" className="login-visual-brand">
-          <span className="login-visual-brand-icon">R</span>
-          RentSphere
-        </Link>
-
-        <div className="login-visual-body">
-          <h2>
-            Welcome<br />
-            <span>back.</span>
-          </h2>
-          <p>
-            Sign in to your RentSphere customer account and start
-            renting products from verified rental partners today.
-          </p>
-          <div className="login-visual-stats">
-            <div className="login-visual-stat">
-              <strong>10K+</strong>
-              <span>Rentals completed</span>
-            </div>
-            <div className="login-visual-divider" />
-            <div className="login-visual-stat">
-              <strong>500+</strong>
-              <span>Verified vendors</span>
-            </div>
-            <div className="login-visual-divider" />
-            <div className="login-visual-stat">
-              <strong>850+</strong>
-              <span>Products listed</span>
-            </div>
-          </div>
-        </div>
-
-        <div className="login-float-card login-float-one">
-          <div className="login-float-card-icon">🔑</div>
-          <div className="login-float-card-text">
-            <strong>Secure Login</strong>
-            <span>Your data is protected</span>
-          </div>
-        </div>
-        <div className="login-float-card login-float-two">
-          <div className="login-float-card-icon">✅</div>
-          <div className="login-float-card-text">
-            <strong>Verified Vendors</strong>
-            <span>Trusted marketplace</span>
-          </div>
-        </div>
-      </div>
-
-      {/* ── RIGHT FORM PANEL ── */}
-      <div className="login-form-panel">
-        <div className="login-card">
-
-          {/* Brand (mobile) */}
-          <div className="login-brand">
-            <Link to="/" className="login-brand-link">
-              <span className="login-brand-icon">R</span>
-              <span>RentSphere</span>
+    <div className="app-container">
+      <Navbar />
+      <main className="auth-page-container">
+        <div className="auth-card glass-card">
+          <div className="auth-header text-center">
+            <Link to="/" className="inline-flex items-center gap-2 mb-3 no-underline">
+              <span className="text-2xl font-black text-white tracking-tight">Rent<span className="text-primary">Sphere</span></span>
             </Link>
+            <h2>Welcome Back</h2>
+            <p>Access your rental bookings, wishlist, and active rentals</p>
           </div>
 
-          {/* Header */}
-          <div className="login-header">
-            <h1>Customer Login</h1>
-            <p>Sign in to browse and rent products</p>
-          </div>
+          {errorMsg && <div className="auth-alert alert-error">{errorMsg}</div>}
 
-          {/* Server error */}
-          {serverError && (
-            <div style={{
-              background: '#fef2f2',
-              border: '1px solid #fecaca',
-              borderRadius: '10px',
-              padding: '12px 16px',
-              marginBottom: '20px',
-              color: '#dc2626',
-              fontSize: '14px',
-            }}>
-              {serverError}
-            </div>
-          )}
-
-          {/* Form */}
-          <form className="login-form" onSubmit={handleSubmit} noValidate>
-
+          <form onSubmit={handleSubmit} className="auth-form">
             <div className="form-group">
-              <label htmlFor="email">Email Address</label>
-              <input
-                id="email"
-                type="email"
-                name="email"
-                value={formData.email}
-                onChange={handleChange}
-                placeholder="you@example.com"
-                autoComplete="email"
-                className={errors.email ? 'input-error' : ''}
-              />
-              {errors.email && <span className="field-error">{errors.email}</span>}
-            </div>
-
-            <div className="form-group">
-              <label htmlFor="password">Password</label>
-              <div className="password-wrapper">
+              <label>Email Address</label>
+              <div className="input-icon-wrapper">
+                <Mail className="field-icon" size={18} />
                 <input
-                  id="password"
-                  type={showPassword ? 'text' : 'password'}
-                  name="password"
-                  value={formData.password}
-                  onChange={handleChange}
-                  placeholder="••••••••"
-                  autoComplete="current-password"
-                  className={errors.password ? 'input-error' : ''}
+                  type="email"
+                  placeholder="name@example.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
                 />
-                <button
-                  type="button"
-                  className="password-toggle"
-                  onClick={() => setShowPassword((p) => !p)}
-                  aria-label={showPassword ? 'Hide password' : 'Show password'}
-                >
-                  {showPassword ? (
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d="M3 3l18 18" /><path d="M10.6 10.6a2 2 0 0 0 2.8 2.8" />
-                      <path d="M9.9 4.2A10.9 10.9 0 0 1 12 4c7 0 10 8 10 8a17.4 17.4 0 0 1-3 4.2" />
-                      <path d="M6.2 6.2C3.7 8.1 2 12 2 12s3 8 10 8a10.9 10.9 0 0 0 3.3-.5" />
-                    </svg>
-                  ) : (
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d="M2 12s3-8 10-8 10 8 10 8-3 8-10 8S2 12 2 12Z" />
-                      <circle cx="12" cy="12" r="3" />
-                    </svg>
-                  )}
-                </button>
               </div>
-              {errors.password && <span className="field-error">{errors.password}</span>}
             </div>
 
-            <div className="login-options">
-              <label className="remember-me">
-                <input type="checkbox" name="remember" checked={formData.remember} onChange={handleChange} />
-                <span className="custom-checkbox"></span>
-                <span>Remember Me</span>
-              </label>
-              <Link to="/forgot-password" className="forgot-link">Forgot Password?</Link>
+            <div className="form-group">
+              <div className="label-with-link">
+                <label>Password</label>
+                <Link to="/forgot-password" className="forgot-link">
+                  Forgot Password?
+                </Link>
+              </div>
+              <div className="input-icon-wrapper">
+                <Lock className="field-icon" size={18} />
+                <input
+                  type="password"
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                />
+              </div>
             </div>
 
-            <button type="submit" className="login-submit" disabled={isLoading}>
-              {isLoading ? (
-                <span className="button-loader">
-                  <span></span><span></span><span></span>
-                </span>
-              ) : 'Sign In'}
+            <button type="submit" className="btn btn-primary w-full" disabled={loading}>
+              {loading ? 'Signing In...' : <><LogIn size={18} /> Log In</>}
             </button>
           </form>
 
-          <div className="login-register">
-            <span>Don't have an account?</span>
-            <Link to="/register?type=customer">Register Here</Link>
+          <div className="auth-divider">
+            <span>OR CONTINUE WITH</span>
           </div>
 
-          <div style={{ textAlign: 'center', marginTop: '16px' }}>
-            <Link
-              to="/partner/login"
-              style={{ color: 'var(--muted)', fontSize: '13px', textDecoration: 'none' }}
-            >
-              Are you a Rental Partner? <strong style={{ color: 'var(--orange)' }}>Login here →</strong>
-            </Link>
-          </div>
+          <button 
+            type="button" 
+            className="btn btn-secondary google-btn w-full" 
+            onClick={handleGoogleSignIn}
+            disabled={loading}
+          >
+            <svg className="google-icon" viewBox="0 0 24 24" width="18" height="18">
+              <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+              <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+              <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
+              <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
+            </svg>
+            Continue with Google
+          </button>
 
-          <Link to="/" className="back-home">← Back to home</Link>
+          <p className="auth-footer-text">
+            Don't have an account? <Link to="/register">Create Account</Link>
+          </p>
+          <p className="auth-footer-text vendor-link">
+            Are you an equipment vendor? <Link to="/partner/login">Vendor Login</Link>
+          </p>
         </div>
-      </div>
+      </main>
+      <Footer />
     </div>
   );
 };

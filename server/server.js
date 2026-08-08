@@ -3,7 +3,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import connectDB from './config/db.js';
 import mainRouter from './routes/index.js';
-import { errorHandler } from './middleware/errorMiddleware.js';
+import { notFound, errorHandler } from './middleware/errorMiddleware.js';
 
 // Load environment variables
 dotenv.config();
@@ -29,6 +29,9 @@ app.use('/api', mainRouter);
 app.get('/', (req, res) => {
   res.json({ message: 'Welcome to the Rental Management System API' });
 });
+
+// Catch-all 404 Route Handler
+app.use(notFound);
 
 // Centralized Error Handler Middleware
 app.use(errorHandler);

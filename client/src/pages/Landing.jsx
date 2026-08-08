@@ -8,6 +8,7 @@ const Landing = () => {
 
   useEffect(() => {
     const revealElements = document.querySelectorAll(".reveal");
+    revealElements.forEach((el) => el.classList.add("show"));
 
     const observer = new IntersectionObserver(
       (entries) => {
@@ -18,7 +19,7 @@ const Landing = () => {
         });
       },
       {
-        threshold: 0.12,
+        threshold: 0.05,
       }
     );
 
@@ -30,51 +31,45 @@ const Landing = () => {
   const categories = [
     {
       name: "Vehicles",
-      description: "Cars, bikes and scooters",
+      description: "Cars, bikes, scooters and EVs",
       image:
         "https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?auto=format&fit=crop&w=700&q=85",
     },
     {
-      name: "Electronics",
-      description: "Laptops, phones and devices",
+      name: "Gym",
+      description: "Treadmills, dumbbells and home gym",
       image:
-        "https://images.unsplash.com/photo-1468495244123-6c6c332eeece?auto=format&fit=crop&w=700&q=85",
+        "https://images.unsplash.com/photo-1576678927484-cc909957088c?auto=format&fit=crop&w=700&q=85",
     },
     {
       name: "Gaming",
-      description: "Consoles, games and accessories",
+      description: "PS5, Xbox, VR headsets and PCs",
       image:
         "https://images.unsplash.com/photo-1606144042614-b2417e99c4e3?auto=format&fit=crop&w=700&q=85",
     },
     {
+      name: "Clothes",
+      description: "Designer tuxedos, suits and dresses",
+      image:
+        "https://images.unsplash.com/photo-1594938298603-c8148c4dae35?auto=format&fit=crop&w=700&q=85",
+    },
+    {
+      name: "Electronics",
+      description: "MacBooks, cameras, drones and tech",
+      image:
+        "https://images.unsplash.com/photo-1468495244123-6c6c332eeece?auto=format&fit=crop&w=700&q=85",
+    },
+    {
       name: "Furniture",
-      description: "Home and office furniture",
+      description: "Home sofas, chairs and office sets",
       image:
         "https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=700&q=85",
     },
     {
-      name: "Cameras",
-      description: "Cameras, lenses and equipment",
-      image:
-        "https://images.unsplash.com/photo-1516035069371-29a1b244cc32?auto=format&fit=crop&w=700&q=85",
-    },
-    {
-      name: "Clothing",
-      description: "Fashion and special occasions",
-      image:
-        "https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&w=700&q=85",
-    },
-    {
       name: "Tools",
-      description: "Tools and professional equipment",
+      description: "Power tools and heavy machinery",
       image:
         "https://images.unsplash.com/photo-1504148455328-c376907d081c?auto=format&fit=crop&w=700&q=85",
-    },
-    {
-      name: "Sports",
-      description: "Sports and outdoor equipment",
-      image:
-        "https://images.unsplash.com/photo-1461896836934-ffe607ba8211?auto=format&fit=crop&w=700&q=85",
     },
   ];
 

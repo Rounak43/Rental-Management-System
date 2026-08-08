@@ -1,12 +1,17 @@
 import api from './api';
 
-export const getProducts = async () => {
-  const response = await api.get('/products');
+export const fetchProducts = async (params = {}) => {
+  const response = await api.get('/products', { params });
   return response.data;
 };
 
-export const getProductById = async (id) => {
+export const fetchProductById = async (id) => {
   const response = await api.get(`/products/${id}`);
+  return response.data;
+};
+
+export const fetchMyProducts = async () => {
+  const response = await api.get('/products/vendor/my-products');
   return response.data;
 };
 

@@ -10,22 +10,27 @@ export const getMyRentals = async () => {
   return response.data;
 };
 
+export const getVendorRentals = async () => {
+  const response = await api.get('/rentals/vendor-rentals');
+  return response.data;
+};
+
 export const getAllRentals = async () => {
   const response = await api.get('/rentals');
   return response.data;
 };
 
-export const updatePickupStatus = async (id, statusData) => {
-  const response = await api.patch(`/rentals/${id}/pickup`, statusData);
+export const updatePickupStatus = async (id, payload) => {
+  const response = await api.patch(`/rentals/${id}/pickup`, payload);
   return response.data;
 };
 
-export const updateReturnStatus = async (id, statusData) => {
-  const response = await api.patch(`/rentals/${id}/return`, statusData);
+export const updateReturnStatus = async (id, payload) => {
+  const response = await api.patch(`/rentals/${id}/return`, payload);
   return response.data;
 };
 
-export const fetchRentalAnalytics = async () => {
+export const getRentalReports = async () => {
   const response = await api.get('/rentals/reports/analytics');
   return response.data;
 };

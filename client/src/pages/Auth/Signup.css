@@ -36,8 +36,8 @@
   border-radius: 50%;
   background: radial-gradient(
     circle,
-    rgba(37, 99, 235, 0.25) 0%,
-    rgba(37, 99, 235, 0.06) 50%,
+    rgba(255, 102, 0, 0.25) 0%,
+    rgba(255, 102, 0, 0.06) 50%,
     transparent 70%
   );
   pointer-events: none;
@@ -53,7 +53,7 @@
   border-radius: 50%;
   background: radial-gradient(
     circle,
-    rgba(37, 99, 235, 0.15) 0%,
+    rgba(255, 102, 0, 0.15) 0%,
     transparent 65%
   );
   pointer-events: none;
@@ -78,12 +78,12 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #2563EB;
+  background: #ff6600;
   border-radius: 11px;
   color: white;
   font-size: 18px;
   font-weight: 800;
-  box-shadow: 0 8px 20px rgba(37, 99, 235, 0.38);
+  box-shadow: 0 8px 20px rgba(255, 102, 0, 0.38);
 }
 
 .signup-visual-body {
@@ -100,7 +100,7 @@
 }
 
 .signup-visual-body h2 span {
-  color: #60a5fa;
+  color: #ffaa55;
 }
 
 .signup-visual-body p {
@@ -130,9 +130,9 @@
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: #2563EB;
+  background: #ff6600;
   flex-shrink: 0;
-  box-shadow: 0 0 8px rgba(37, 99, 235, 0.6);
+  box-shadow: 0 0 8px rgba(255, 102, 0, 0.6);
 }
 
 /* Floating cards */
@@ -153,7 +153,7 @@
   width: 40px;
   height: 40px;
   border-radius: 10px;
-  background: #2563EB;
+  background: #ff6600;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -240,12 +240,12 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #2563EB;
+  background: #ff6600;
   border-radius: 9px;
   color: white;
   font-size: 16px;
   font-weight: 800;
-  box-shadow: 0 6px 16px rgba(37, 99, 235, 0.28);
+  box-shadow: 0 6px 16px rgba(255, 102, 0, 0.28);
 }
 
 /* Header */
@@ -298,13 +298,13 @@
 
 .auth-tab:hover,
 .signup-tab:hover {
-  color: #2563EB;
+  color: #ff6600;
 }
 
 .auth-tab.active,
 .signup-tab.active {
-  color: #2563EB;
-  border-bottom-color: #2563EB;
+  color: #ff6600;
+  border-bottom-color: #ff6600;
   font-weight: 700;
 }
 
@@ -387,8 +387,8 @@
 .input-group select:focus,
 .signup-form-group input:focus {
   background: white;
-  border-color: #2563EB;
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+  border-color: #ff6600;
+  box-shadow: 0 0 0 3px rgba(255, 102, 0, 0.1);
 }
 
 .input-group input.input-error,
@@ -452,8 +452,8 @@
 
 .password-toggle-btn:hover,
 .signup-password-toggle:hover {
-  color: #2563EB;
-  background: #eff6ff;
+  color: #ff6600;
+  background: #fff7ed;
 }
 
 /* Password Strength Indicator */
@@ -530,14 +530,14 @@
   margin-top: 20px;
   border: none;
   border-radius: 10px;
-  background: #2563EB;
+  background: #ff6600;
   color: white;
   cursor: pointer;
   font-family: inherit;
   font-size: 15px;
   font-weight: 700;
   letter-spacing: 0.2px;
-  box-shadow: 0 8px 22px rgba(37, 99, 235, 0.22);
+  box-shadow: 0 8px 22px rgba(255, 102, 0, 0.22);
   transition:
     background 0.25s ease,
     transform 0.2s ease,
@@ -546,9 +546,9 @@
 
 .auth-submit-btn:hover:not(:disabled),
 .signup-submit:hover:not(:disabled) {
-  background: #1d4ed8;
+  background: #ea580c;
   transform: translateY(-2px);
-  box-shadow: 0 14px 28px rgba(37, 99, 235, 0.3);
+  box-shadow: 0 14px 28px rgba(255, 102, 0, 0.3);
 }
 
 .auth-submit-btn:disabled,
@@ -570,7 +570,7 @@
 
 .auth-footer a,
 .signup-login a {
-  color: #2563EB;
+  color: #ff6600;
   font-weight: 700;
   text-decoration: none;
   transition: color 0.2s ease;
@@ -578,7 +578,7 @@
 
 .auth-footer a:hover,
 .signup-login a:hover {
-  color: #1d4ed8;
+  color: #ea580c;
   text-decoration: underline;
 }
 
@@ -594,7 +594,7 @@
 }
 
 .signup-back-home:hover {
-  color: #2563EB;
+  color: #ff6600;
 }
 
 /* ── Mobile Layout ── */

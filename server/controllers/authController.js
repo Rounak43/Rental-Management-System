@@ -25,8 +25,10 @@ export const register = async (req, res, next) => {
       return res.status(400).json({ message: 'Please provide email and password' });
     }
 
+    const cleanEmail = email.toLowerCase().trim();
+
     // Check if user already exists
-    const userExists = await User.findOne({ email });
+    const userExists = await User.findOne({ email: cleanEmail });
 
     if (userExists) {
       return res.status(400).json({ message: 'User already exists' });
@@ -46,7 +48,7 @@ export const register = async (req, res, next) => {
     // Create user
     const user = await User.create({
       name: finalName,
-      email,
+      email: cleanEmail,
       password: hashedPassword,
       phone,
       role: userRole,
@@ -101,8 +103,10 @@ export const login = async (req, res, next) => {
       return res.status(400).json({ message: 'Please provide email and password' });
     }
 
+    const cleanEmail = email.toLowerCase().trim();
+
     // Find user
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ email: cleanEmail });
 
     // Validate credentials
     if (user && (await bcrypt.compare(password, user.password))) {
