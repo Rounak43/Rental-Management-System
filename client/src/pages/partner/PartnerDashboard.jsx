@@ -1,622 +1,293 @@
 import React, { useState, useEffect, useContext } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { AuthContext } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import { getVendorDashboard } from '../../services/vendorService';
-import { getVendorRentals } from '../../services/rentalService';
-import { fetchMyProducts, createProduct } from '../../services/productService';
+import { fetchMyProducts } from '../../services/productService';
 import Navbar from '../../components/layout/Navbar';
 import Footer from '../../components/layout/Footer';
+import VendorSidebar from '../../components/layout/VendorSidebar';
 import {
   DollarSign,
   Package,
   CalendarCheck,
   Clock,
-  AlertTriangle,
-  BarChart2,
-  TrendingUp,
   Plus,
-  CheckCircle2,
-  XCircle,
-  ShieldCheck,
-  Store,
-  X
+  ArrowRight,
+  TrendingUp,
+  Percent,
+  CheckCircle,
+  Eye
 } from 'lucide-react';
 import './PartnerDashboard.css';
 
 const PartnerDashboard = () => {
   const { user } = useContext(AuthContext);
-  const { showToast } = useToast();
+  const toast = useToast();
+  const navigate = useNavigate();
 
-  const [activeTab, setActiveTab] = useState('requests');
-  const [chartPeriod, setChartPeriod] = useState('7d');
   const [loading, setLoading] = useState(true);
-
   const [stats, setStats] = useState({
-    totalRevenue: 148500,
-    activeProducts: 14,
-    totalBookings: 92,
-    pendingRequests: 3,
-    returnedCount: 89,
-    onTimeRate: 99.2
+    totalProducts: 0,
+    publishedProducts: 0,
+    availableProducts: 0,
+    totalRentals: 0,
+    activeRentals: 0,
+    pendingRentals: 0,
+    completedRentals: 0,
+    totalRevenue: 0,
   });
 
-  const [customerRequests, setCustomerRequests] = useState([
-    {
-      _id: 'REQ-1092',
-      customerName: 'Alex Morgan',
-      productName: 'Sony Alpha A7 IV Camera Kit',
-      category: 'Electronics',
-      startDate: '2026-08-10',
-      endDate: '2026-08-15',
-      amount: 4995,
-      deposit: 4000,
-      status: 'Pending Approval',
-    },
-    {
-      _id: 'REQ-1093',
-      customerName: 'Sarah Connor',
-      productName: 'BMW 5 Series Luxury Sedan',
-      category: 'Vehicles',
-      startDate: '2026-08-12',
-      endDate: '2026-08-16',
-      amount: 9996,
-      deposit: 10000,
-      status: 'Pending Approval',
-    },
-    {
-      _id: 'REQ-1094',
-      customerName: 'Marcus Vance',
-      productName: 'PlayStation 5 Console Bundle',
-      category: 'Gaming',
-      startDate: '2026-08-14',
-      endDate: '2026-08-18',
-      amount: 1996,
-      deposit: 2000,
-      status: 'Approved',
-    }
-  ]);
-
-  const [vendorInventory, setVendorInventory] = useState([
-    { _id: 'v1', title: 'Sony Alpha A7 IV Camera Kit', category: 'Electronics', pricePerDay: 999, deposit: 4000, status: 'Available' },
-    { _id: 'v2', title: 'BMW 5 Series Luxury Sedan', category: 'Vehicles', pricePerDay: 2499, deposit: 10000, status: 'On Lease' },
-    { _id: 'v3', title: 'Commercial Motorized Treadmill', category: 'Gym', pricePerDay: 599, deposit: 2500, status: 'Available' },
-    { _id: 'v4', title: 'PlayStation 5 Console Bundle', category: 'Gaming', pricePerDay: 499, deposit: 2000, status: 'On Lease' },
-    { _id: 'v5', title: 'Designer Tuxedo Suit', category: 'Clothes', pricePerDay: 799, deposit: 3000, status: 'Available' },
-  ]);
-
-  // Add Listing Modal
-  const [showAddModal, setShowAddModal] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
-  const [formData, setFormData] = useState({
-    title: '',
-    category: 'Vehicles',
-    pricePerDay: '',
-    securityDeposit: '',
-    description: '',
-    images: ''
-  });
+  const [recentRentals, setRecentRentals] = useState([]);
+  const [recentProducts, setRecentProducts] = useState([]);
 
   useEffect(() => {
-    loadVendorStats();
+    loadDashboardData();
   }, []);
 
-  const loadVendorStats = async () => {
+  const loadDashboardData = async () => {
     setLoading(true);
     try {
-      const [dashData, vendorProducts, vendorRentals] = await Promise.all([
+      const [dashData, products] = await Promise.all([
         getVendorDashboard().catch(() => null),
         fetchMyProducts().catch(() => []),
-        getVendorRentals().catch(() => []),
       ]);
 
       if (dashData?.stats) {
-        setStats(prev => ({
-          ...prev,
-          totalRevenue: dashData.stats.totalRevenue || prev.totalRevenue,
-          totalBookings: dashData.stats.totalRentals || prev.totalBookings,
-          pendingRequests: dashData.stats.pendingRentals || prev.pendingRequests,
-        }));
+        setStats(dashData.stats);
       }
-
-      if (Array.isArray(vendorProducts) && vendorProducts.length > 0) {
-        const formattedProducts = vendorProducts.map(p => ({
-          _id: p._id,
-          title: p.title,
-          category: p.category?.name || p.category || 'Gear',
-          pricePerDay: p.pricePerDay,
-          deposit: p.securityDeposit || 500,
-          status: p.availability ? 'Available' : 'Maintenance',
-        }));
-        setVendorInventory(formattedProducts);
+      if (dashData?.recentRentals) {
+        setRecentRentals(dashData.recentRentals);
       }
-
-      if (Array.isArray(vendorRentals) && vendorRentals.length > 0) {
-        const formattedRequests = vendorRentals.map(r => ({
-          _id: r._id,
-          customerName: r.user?.name || 'Customer',
-          productName: r.product?.title || 'Rental Equipment',
-          category: 'Gear',
-          startDate: r.rentStartDate ? new Date(r.rentStartDate).toISOString().split('T')[0] : '2026-08-10',
-          endDate: r.rentEndDate ? new Date(r.rentEndDate).toISOString().split('T')[0] : '2026-08-15',
-          amount: r.totalCost || 1500,
-          deposit: r.securityDepositPaid || 500,
-          status: r.status === 'active' ? 'Approved' : 'Pending Approval',
-        }));
-        setCustomerRequests(formattedRequests);
+      if (Array.isArray(products)) {
+        setRecentProducts(products.slice(0, 4));
       }
-    } catch (e) {
-      console.warn('Vendor stats notification:', e);
+    } catch (err) {
+      toast.error('Failed to load dashboard statistics.');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleApprove = (reqId) => {
-    setCustomerRequests(
-      customerRequests.map((r) => (r._id === reqId ? { ...r, status: 'Approved' } : r))
-    );
-    showToast(`Request ${reqId} approved! Dispatch label generated.`, 'success');
-  };
-
-  const handleReject = (reqId) => {
-    setCustomerRequests(customerRequests.filter((r) => r._id !== reqId));
-    showToast(`Booking request ${reqId} rejected.`, 'info');
-  };
-
-  const toggleInventoryStatus = (id) => {
-    setVendorInventory(vendorInventory.map(item => {
-      if (item._id === id) {
-        const nextStatus = item.status === 'Available' ? 'Maintenance' : 'Available';
-        return { ...item, status: nextStatus };
-      }
-      return item;
-    }));
-    showToast(`Inventory status updated.`, 'success');
-  };
-
-  const handleAddEquipmentSubmit = async (e) => {
-    e.preventDefault();
-    if (!formData.title || !formData.pricePerDay) {
-      showToast('Equipment title and daily rate are required!', 'error');
-      return;
-    }
-
-    setSubmitting(true);
-    try {
-      const payload = {
-        title: formData.title,
-        categoryName: formData.category,
-        pricePerDay: Number(formData.pricePerDay),
-        securityDeposit: Number(formData.securityDeposit || 500),
-        description: formData.description || 'High quality rental equipment',
-        images: formData.images ? [formData.images] : ['https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=500']
-      };
-
-      const res = await createProduct(payload).catch(() => null);
-
-      const newItem = {
-        _id: res?._id || `v_${Date.now()}`,
-        title: formData.title,
-        category: formData.category,
-        pricePerDay: Number(formData.pricePerDay),
-        deposit: Number(formData.securityDeposit || 500),
-        status: 'Available'
-      };
-
-      setVendorInventory([newItem, ...vendorInventory]);
-      setStats(prev => ({ ...prev, activeProducts: prev.activeProducts + 1 }));
-      showToast(`"${formData.title}" published to store listings!`, 'success');
-      setShowAddModal(false);
-      setFormData({ title: '', category: 'Vehicles', pricePerDay: '', securityDeposit: '', description: '', images: '' });
-    } catch (err) {
-      showToast(err.message || 'Failed to add equipment', 'error');
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  // Dynamic Chart Bar Heights
-  const chartData = {
-    '7d': [
-      { day: 'Mon', val: '45%' },
-      { day: 'Tue', val: '65%' },
-      { day: 'Wed', val: '90%' },
-      { day: 'Thu', val: '75%' },
-      { day: 'Fri', val: '100%' },
-      { day: 'Sat', val: '85%' },
-      { day: 'Sun', val: '70%' },
-    ],
-    '30d': [
-      { day: 'W1', val: '60%' },
-      { day: 'W2', val: '80%' },
-      { day: 'W3', val: '95%' },
-      { day: 'W4', val: '100%' },
-    ],
-    '1y': [
-      { day: 'Q1', val: '70%' },
-      { day: 'Q2', val: '85%' },
-      { day: 'Q3', val: '90%' },
-      { day: 'Q4', val: '100%' },
-    ]
-  };
-
   return (
     <div className="app-container">
       <Navbar />
-      <div className="partner-dash-wrapper">
-        <div className="partner-dash-container">
-          
-          {/* Vendor Welcome Banner */}
-          <div className="partner-welcome-card">
-            <div>
-              <h2>Vendor Control — {user?.vendorProfile?.companyName || user?.name || 'Partner Store'} <ShieldCheck size={20} className="inline text-success" /></h2>
-              <p className="text-muted">Manage customer rental bookings, equipment listings, and revenue metrics.</p>
-            </div>
-            <div className="flex gap-3 items-center">
-              <button className="btn btn-primary" onClick={() => setShowAddModal(true)}>
-                <Plus size={16} /> Add Equipment
-              </button>
-              <Link to="/partner/orders" className="btn btn-secondary">
-                <Store size={16} /> Dispatch Orders
-              </Link>
-            </div>
-          </div>
-
-          {/* Metric Cards Grid */}
-          <div className="grid-4 mt-6">
-            <div className="metric-card">
-              <div className="metric-icon-box green"><DollarSign size={22} /></div>
-              <div>
-                <span className="metric-label">Total Revenue</span>
-                <p className="metric-value">₹{stats.totalRevenue.toLocaleString()}</p>
-              </div>
-            </div>
-
-            <div className="metric-card">
-              <div className="metric-icon-box orange-accent"><Package size={22} /></div>
-              <div>
-                <span className="metric-label">Listed Equipment</span>
-                <p className="metric-value">{vendorInventory.length}</p>
-              </div>
-            </div>
-
-            <div className="metric-card">
-              <div className="metric-icon-box purple"><CalendarCheck size={22} /></div>
-              <div>
-                <span className="metric-label">Completed Leases</span>
-                <p className="metric-value">{stats.totalBookings}</p>
-              </div>
-            </div>
-
-            <div className="metric-card">
-              <div className="metric-icon-box orange"><AlertTriangle size={22} /></div>
-              <div>
-                <span className="metric-label">Pending Approval</span>
-                <p className="metric-value">{customerRequests.filter((r) => r.status === 'Pending Approval').length}</p>
-              </div>
-            </div>
-          </div>
-
-          {/* Vendor Navigation Tabs */}
-          <div className="vendor-nav-tabs">
-            <button
-              className={`vendor-tab-btn ${activeTab === 'requests' ? 'active' : ''}`}
-              onClick={() => setActiveTab('requests')}
-            >
-              Booking Requests ({customerRequests.filter((r) => r.status === 'Pending Approval').length})
-            </button>
-            <button
-              className={`vendor-tab-btn ${activeTab === 'inventory' ? 'active' : ''}`}
-              onClick={() => setActiveTab('inventory')}
-            >
-              Store Inventory ({vendorInventory.length})
-            </button>
-            <button
-              className={`vendor-tab-btn ${activeTab === 'analytics' ? 'active' : ''}`}
-              onClick={() => setActiveTab('analytics')}
-            >
-              Revenue Analytics
-            </button>
-          </div>
-
-          {/* Main Content Grid */}
-          <div className="dash-main-grid mt-6">
+      <div style={{ display: 'flex', minHeight: 'calc(100vh - 80px)' }}>
+        <VendorSidebar />
+        
+        <main style={{ flex: 1, padding: '32px', background: 'var(--bg-color)', overflowY: 'auto' }}>
+          <div className="partner-dash-container" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
             
-            {/* Left Column: Tab Content */}
-            <div className="dash-column flex-col gap-6">
-              
-              {/* TAB 1: PENDING REQUESTS */}
-              {activeTab === 'requests' && (
-                <div className="glass-card">
-                  <div className="dash-card-header mb-4">
-                    <h3><Clock size={18} className="text-primary" /> Incoming Booking Requests</h3>
-                    <Link to="/partner/orders" className="text-link">Dispatch Portal →</Link>
+            {/* Header / Welcome Row */}
+            <div className="partner-welcome-card glass-card">
+              <div>
+                <h2>Welcome back, {user?.name || 'Partner'}!</h2>
+                <p>Monitor your rental metrics, products catalog and check customer agreements from a single view.</p>
+              </div>
+              <button className="btn btn-primary" onClick={() => navigate('/partner/products/add')}>
+                <Plus size={16} /> Add New Equipment
+              </button>
+            </div>
+
+            {loading ? (
+              <div className="flex-col gap-4 py-12">
+                <div className="skeleton" style={{ height: '120px', borderRadius: '16px' }} />
+                <div className="skeleton" style={{ height: '350px', borderRadius: '16px' }} />
+              </div>
+            ) : (
+              <>
+                {/* Stats Summary Grid */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '20px' }}>
+                  
+                  <div className="glass-card" style={{ padding: '20px', display: 'flex', alignItems: 'center', gap: '16px' }}>
+                    <div style={{ padding: '12px', background: 'rgba(255, 102, 0, 0.1)', borderRadius: '12px', color: 'var(--primary-color)' }}>
+                      <Package size={24} />
+                    </div>
+                    <div>
+                      <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: '500' }}>Total Products</span>
+                      <h3 style={{ margin: '4px 0 0', fontSize: '1.6rem', fontWeight: 'bold' }}>{stats.totalProducts}</h3>
+                    </div>
                   </div>
 
-                  <div className="table-responsive">
-                    <table className="vendor-table">
-                      <thead>
-                        <tr>
-                          <th>Req ID</th>
-                          <th>Customer</th>
-                          <th>Equipment</th>
-                          <th>Dates</th>
-                          <th>Amount</th>
-                          <th>Status</th>
-                          <th className="text-right">Action</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {customerRequests.length === 0 ? (
-                          <tr>
-                            <td colSpan="7" className="text-center py-6 text-muted">
-                              No active booking requests found.
-                            </td>
-                          </tr>
+                  <div className="glass-card" style={{ padding: '20px', display: 'flex', alignItems: 'center', gap: '16px' }}>
+                    <div style={{ padding: '12px', background: 'rgba(16, 185, 129, 0.1)', borderRadius: '12px', color: 'var(--color-success)' }}>
+                      <CheckCircle size={24} />
+                    </div>
+                    <div>
+                      <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: '500' }}>Available Equipment</span>
+                      <h3 style={{ margin: '4px 0 0', fontSize: '1.6rem', fontWeight: 'bold' }}>{stats.availableProducts}</h3>
+                    </div>
+                  </div>
+
+                  <div className="glass-card" style={{ padding: '20px', display: 'flex', alignItems: 'center', gap: '16px' }}>
+                    <div style={{ padding: '12px', background: 'rgba(245, 158, 11, 0.1)', borderRadius: '12px', color: 'var(--color-warning)' }}>
+                      <Clock size={24} />
+                    </div>
+                    <div>
+                      <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: '500' }}>Pending Bookings</span>
+                      <h3 style={{ margin: '4px 0 0', fontSize: '1.6rem', fontWeight: 'bold' }}>{stats.pendingRentals}</h3>
+                    </div>
+                  </div>
+
+                  <div className="glass-card" style={{ padding: '20px', display: 'flex', alignItems: 'center', gap: '16px' }}>
+                    <div style={{ padding: '12px', background: 'rgba(255, 119, 20, 0.1)', borderRadius: '12px', color: 'var(--color-info)' }}>
+                      <TrendingUp size={24} />
+                    </div>
+                    <div>
+                      <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: '500' }}>Rented Out</span>
+                      <h3 style={{ margin: '4px 0 0', fontSize: '1.6rem', fontWeight: 'bold' }}>{stats.activeRentals}</h3>
+                    </div>
+                  </div>
+
+                  <div className="glass-card" style={{ padding: '20px', display: 'flex', alignItems: 'center', gap: '16px', gridColumn: 'span 2' }}>
+                    <div style={{ padding: '12px', background: 'rgba(255, 102, 0, 0.1)', borderRadius: '12px', color: 'var(--primary-color)' }}>
+                      <DollarSign size={24} />
+                    </div>
+                    <div>
+                      <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: '500' }}>Accumulated Revenue</span>
+                      <h3 style={{ margin: '4px 0 0', fontSize: '1.8rem', fontWeight: '800', color: 'var(--primary-color)' }}>₹{stats.totalRevenue.toLocaleString()}</h3>
+                    </div>
+                  </div>
+
+                </div>
+
+                {/* Dashboard Split Sections */}
+                <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '24px' }}>
+                  
+                  {/* Left Column: Revenue Chart & Recent Bookings */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                    
+                    {/* SVG Analytics Chart */}
+                    <div className="glass-card" style={{ padding: '24px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                        <div>
+                          <h3 style={{ margin: 0 }}>Revenue Trend</h3>
+                          <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Estimated earnings over past months</span>
+                        </div>
+                      </div>
+                      <div style={{ height: '220px', width: '100%', display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', padding: '10px 20px', borderBottom: '2px solid var(--surface-border)' }}>
+                        {/* Custom visual bars for premium analytics feeling */}
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', flex: 1 }}>
+                          <div style={{ width: '32px', height: '60px', background: 'var(--surface-border)', borderRadius: '6px 6px 0 0' }} />
+                          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>May</span>
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', flex: 1 }}>
+                          <div style={{ width: '32px', height: '90px', background: 'var(--surface-border)', borderRadius: '6px 6px 0 0' }} />
+                          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Jun</span>
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', flex: 1 }}>
+                          <div style={{ width: '32px', height: '140px', background: 'var(--primary-gradient)', borderRadius: '6px 6px 0 0', boxShadow: '0 4px 10px var(--primary-glow)' }} />
+                          <span style={{ fontSize: '0.75rem', color: 'var(--text-primary)', fontWeight: 'bold' }}>Jul</span>
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', flex: 1 }}>
+                          <div style={{ width: '32px', height: '120px', background: 'var(--surface-border)', borderRadius: '6px 6px 0 0' }} />
+                          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Aug</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Recent Bookings Agreement List */}
+                    <div className="glass-card" style={{ padding: '24px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                        <h3 style={{ margin: 0 }}>Recent Orders</h3>
+                        <Link to="/partner/orders" style={{ fontSize: '0.85rem', color: 'var(--primary-color)', display: 'flex', alignItems: 'center', gap: '4px', textDecoration: 'none', fontWeight: '600' }}>
+                          Manage Orders <ArrowRight size={14} />
+                        </Link>
+                      </div>
+                      
+                      {recentRentals.length === 0 ? (
+                        <p style={{ py: 6, color: 'var(--text-muted)', textAlign: 'center' }}>No active bookings yet.</p>
+                      ) : (
+                        <div className="table-responsive">
+                          <table className="vendor-table">
+                            <thead>
+                              <tr>
+                                <th>Equipment</th>
+                                <th>Customer</th>
+                                <th>Amount</th>
+                                <th>Status</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {recentRentals.map((rental) => (
+                                <tr key={rental._id}>
+                                  <td>{rental.product?.title || 'Rental Equipment'}</td>
+                                  <td>{rental.user?.name || 'Customer'}</td>
+                                  <td>₹{rental.totalCost}</td>
+                                  <td>
+                                    <span className={`badge ${
+                                      rental.status === 'active' ? 'badge-success' : 
+                                      rental.status === 'pending' ? 'badge-warning' : 'badge-info'
+                                    }`}>
+                                      {rental.status}
+                                    </span>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
+                    </div>
+
+                  </div>
+
+                  {/* Right Column: Quick Links & Recent Products */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                    
+                    {/* Quick Link Shortcuts */}
+                    <div className="glass-card" style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                      <h3 style={{ margin: 0, marginBottom: '4px' }}>Quick Shortcuts</h3>
+                      <button className="btn btn-secondary" onClick={() => navigate('/partner/products/add')} style={{ width: '100%', justifyContent: 'flex-start' }}>
+                        <Plus size={16} style={{ marginRight: '8px' }} /> Create Listing
+                      </button>
+                      <button className="btn btn-secondary" onClick={() => navigate('/partner/products')} style={{ width: '100%', justifyContent: 'flex-start' }}>
+                        <Package size={16} style={{ marginRight: '8px' }} /> View Catalog
+                      </button>
+                      <button className="btn btn-secondary" onClick={() => navigate('/partner/revenue')} style={{ width: '100%', justifyContent: 'flex-start' }}>
+                        <DollarSign size={16} style={{ marginRight: '8px' }} /> Revenue Overview
+                      </button>
+                    </div>
+
+                    {/* Recent Products */}
+                    <div className="glass-card" style={{ padding: '24px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                        <h3 style={{ margin: 0 }}>My Catalog</h3>
+                        <Link to="/partner/products" style={{ fontSize: '0.85rem', color: 'var(--primary-color)', display: 'flex', alignItems: 'center', gap: '4px', textDecoration: 'none', fontWeight: '600' }}>
+                          View All
+                        </Link>
+                      </div>
+
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                        {recentProducts.length === 0 ? (
+                          <p style={{ color: 'var(--text-muted)', textAlign: 'center' }}>No products listed.</p>
                         ) : (
-                          customerRequests.map((req) => (
-                            <tr key={req._id}>
-                              <td><strong>{req._id}</strong></td>
-                              <td>{req.customerName}</td>
-                              <td>{req.productName}</td>
-                              <td className="text-xs text-muted">{req.startDate} to {req.endDate}</td>
-                              <td><strong>₹{req.amount}</strong></td>
-                              <td>
-                                <span className={`badge ${req.status === 'Approved' ? 'badge-success' : 'badge-warning'}`}>
-                                  {req.status}
-                                </span>
-                              </td>
-                              <td className="text-right">
-                                {req.status === 'Pending Approval' ? (
-                                  <div className="flex justify-end gap-2">
-                                    <button className="btn btn-primary btn-sm" onClick={() => handleApprove(req._id)}>
-                                      <CheckCircle2 size={14} /> Approve
-                                    </button>
-                                    <button className="btn btn-danger btn-sm" onClick={() => handleReject(req._id)}>
-                                      <XCircle size={14} /> Reject
-                                    </button>
-                                  </div>
-                                ) : (
-                                  <span className="text-xs text-success font-semibold">Ready for Dispatch</span>
-                                )}
-                              </td>
-                            </tr>
+                          recentProducts.map((p) => (
+                            <div key={p._id} style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                              <img 
+                                src={p.images?.[0] || 'https://images.unsplash.com/photo-1516035069371-29a1b244cc32?w=120'} 
+                                alt={p.title} 
+                                style={{ width: '50px', height: '50px', objectFit: 'cover', borderRadius: '8px' }}
+                              />
+                              <div style={{ flex: 1, minWidth: 0 }}>
+                                <h4 style={{ margin: 0, fontSize: '0.9rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.title}</h4>
+                                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>₹{p.pricePerDay}/day</span>
+                              </div>
+                            </div>
                           ))
                         )}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              )}
-
-              {/* TAB 2: STORE INVENTORY */}
-              {activeTab === 'inventory' && (
-                <div className="glass-card">
-                  <div className="dash-card-header mb-4">
-                    <h3><Package size={18} className="text-primary" /> Store Listings</h3>
-                    <button className="btn btn-primary btn-sm" onClick={() => setShowAddModal(true)}>
-                      + Add Listing
-                    </button>
-                  </div>
-
-                  <div className="table-responsive">
-                    <table className="vendor-table">
-                      <thead>
-                        <tr>
-                          <th>Item Title</th>
-                          <th>Category</th>
-                          <th>Rate</th>
-                          <th>Deposit</th>
-                          <th>Status</th>
-                          <th className="text-right">Action</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {vendorInventory.map((item) => (
-                          <tr key={item._id}>
-                            <td><strong>{item.title}</strong></td>
-                            <td><span className="badge badge-info">{item.category}</span></td>
-                            <td>₹{item.pricePerDay}/day</td>
-                            <td>₹{item.deposit}</td>
-                            <td>
-                              <span className={`badge ${
-                                item.status === 'Available' 
-                                  ? 'badge-success' 
-                                  : item.status === 'On Lease' 
-                                  ? 'badge-warning' 
-                                  : 'badge-danger'
-                              }`}>
-                                {item.status}
-                              </span>
-                            </td>
-                            <td className="text-right">
-                              {item.status !== 'On Lease' ? (
-                                <button
-                                  className="btn btn-secondary btn-sm"
-                                  onClick={() => toggleInventoryStatus(item._id)}
-                                >
-                                  Mark {item.status === 'Available' ? 'Maintenance' : 'Available'}
-                                </button>
-                              ) : (
-                                <span className="text-xs text-muted">Leased Out</span>
-                              )}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              )}
-
-              {/* TAB 3: REVENUE ANALYTICS */}
-              {activeTab === 'analytics' && (
-                <div className="glass-card">
-                  <div className="chart-header-row mb-4 flex justify-between items-center">
-                    <h3><BarChart2 size={18} className="text-success" /> Revenue Analytics</h3>
-                    <div className="flex gap-2">
-                      <button
-                        className={`chart-period-btn ${chartPeriod === '7d' ? 'active' : ''}`}
-                        onClick={() => setChartPeriod('7d')}
-                      >
-                        7 Days
-                      </button>
-                      <button
-                        className={`chart-period-btn ${chartPeriod === '30d' ? 'active' : ''}`}
-                        onClick={() => setChartPeriod('30d')}
-                      >
-                        30 Days
-                      </button>
-                      <button
-                        className={`chart-period-btn ${chartPeriod === '1y' ? 'active' : ''}`}
-                        onClick={() => setChartPeriod('1y')}
-                      >
-                        1 Year
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="analytics-placeholder">
-                    {chartData[chartPeriod].map((bar, i) => (
-                      <div key={i} className="chart-bar" style={{ height: bar.val }}>
-                        <span>{bar.day}</span>
                       </div>
-                    ))}
+                    </div>
+
                   </div>
 
-                  <div className="grid-3 mt-6 gap-4">
-                    <div className="status-row">
-                      <span>On-Time Return Rate</span>
-                      <strong className="text-success">{stats.onTimeRate}%</strong>
-                    </div>
-                    <div className="status-row">
-                      <span>Avg. Lease Duration</span>
-                      <strong>4.2 Days</strong>
-                    </div>
-                    <div className="status-row">
-                      <span>Repeat Customers</span>
-                      <strong>38%</strong>
-                    </div>
-                  </div>
                 </div>
-              )}
-            </div>
+              </>
+            )}
 
-            {/* Right Sidebar */}
-            <aside className="dash-sidebar flex-col gap-6">
-              <div className="glass-card">
-                <h3>Inventory Status</h3>
-                <div className="inventory-status-list mt-3 flex-col gap-2">
-                  <div className="status-row">
-                    <span>Available Store Items</span>
-                    <strong className="text-success">
-                      {vendorInventory.filter(i => i.status === 'Available').length}
-                    </strong>
-                  </div>
-                  <div className="status-row">
-                    <span>Currently Rented Out</span>
-                    <strong className="text-warning">
-                      {vendorInventory.filter(i => i.status === 'On Lease').length}
-                    </strong>
-                  </div>
-                  <div className="status-row">
-                    <span>Under Maintenance</span>
-                    <strong className="text-muted">
-                      {vendorInventory.filter(i => i.status === 'Maintenance').length}
-                    </strong>
-                  </div>
-                </div>
-              </div>
-
-              <div className="glass-card">
-                <h3>Quick Actions</h3>
-                <div className="quick-links-list flex-col gap-2 mt-3">
-                  <button className="quick-nav-btn" onClick={() => setShowAddModal(true)}>
-                    <Plus size={16} /> Add Equipment Listing
-                  </button>
-                  <Link to="/partner/orders" className="quick-nav-btn">
-                    <CalendarCheck size={16} /> Order Dispatch Portal
-                  </Link>
-                  <Link to="/partner/settings" className="quick-nav-btn">
-                    <TrendingUp size={16} /> Payout & Bank Settings
-                  </Link>
-                </div>
-              </div>
-            </aside>
           </div>
-        </div>
+        </main>
       </div>
-
-      {/* Add Equipment Modal */}
-      {showAddModal && (
-        <div className="modal-overlay" onClick={() => setShowAddModal(false)}>
-          <div className="modal-container glass-card" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3>Add New Equipment Listing</h3>
-              <button className="modal-close-btn" onClick={() => setShowAddModal(false)}><X size={20} /></button>
-            </div>
-            <form onSubmit={handleAddEquipmentSubmit} className="modal-body flex-col gap-3 mt-4">
-              <div className="form-group">
-                <label>Equipment Name *</label>
-                <input
-                  type="text"
-                  value={formData.title}
-                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                  placeholder="e.g. BMW 5 Series Luxury Sedan"
-                  required
-                />
-              </div>
-
-              <div className="form-group">
-                <label>Category *</label>
-                <select
-                  value={formData.category}
-                  onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                  required
-                >
-                  <option value="Vehicles">Vehicles (Cars & Bikes)</option>
-                  <option value="Gym">Gym & Fitness</option>
-                  <option value="Gaming">Gaming & Consoles</option>
-                  <option value="Clothes">Clothes & Fashion</option>
-                  <option value="Electronics">Electronics & Tech</option>
-                  <option value="Furniture">Furniture & Home</option>
-                </select>
-              </div>
-
-              <div className="grid-2 gap-4">
-                <div className="form-group">
-                  <label>Daily Rental Rate (₹/day) *</label>
-                  <input
-                    type="number"
-                    value={formData.pricePerDay}
-                    onChange={(e) => setFormData({ ...formData, pricePerDay: e.target.value })}
-                    placeholder="899"
-                    required
-                  />
-                </div>
-                <div className="form-group">
-                  <label>Security Deposit (₹)</label>
-                  <input
-                    type="number"
-                    value={formData.securityDeposit}
-                    onChange={(e) => setFormData({ ...formData, securityDeposit: e.target.value })}
-                    placeholder="3000"
-                  />
-                </div>
-              </div>
-
-              <div className="modal-footer flex justify-end gap-2 mt-4">
-                <button type="button" className="btn btn-secondary" onClick={() => setShowAddModal(false)} disabled={submitting}>Cancel</button>
-                <button type="submit" className="btn btn-primary" disabled={submitting}>
-                  {submitting ? 'Publishing...' : 'Publish Listing'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
       <Footer />
     </div>
   );

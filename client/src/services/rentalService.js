@@ -25,6 +25,11 @@ export const updatePickupStatus = async (id, payload) => {
   return response.data;
 };
 
+export const updateRentalBookingStatus = async (id, status) => {
+  const response = await api.patch(`/rentals/${id}/status`, { status });
+  return response.data;
+};
+
 export const updateReturnStatus = async (id, payload) => {
   const response = await api.patch(`/rentals/${id}/return`, payload);
   return response.data;

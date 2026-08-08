@@ -6,6 +6,7 @@ import {
   getAllRentals,
   updatePickupStatus,
   updateReturnStatus,
+  updateRentalStatus,
   getRentalReports,
 } from '../controllers/rentalController.js';
 import { protect, admin, vendor } from '../middleware/authMiddleware.js';
@@ -18,11 +19,12 @@ router.get('/my-rentals', protect, getMyRentals);
 
 // Vendor rental endpoints
 router.get('/vendor-rentals', protect, vendor, getVendorRentals);
+router.patch('/:id/pickup', protect, vendor, updatePickupStatus);
+router.patch('/:id/return', protect, vendor, updateReturnStatus);
+router.patch('/:id/status', protect, vendor, updateRentalStatus);
 
 // Admin-only management endpoints
 router.get('/', protect, admin, getAllRentals);
-router.patch('/:id/pickup', protect, admin, updatePickupStatus);
-router.patch('/:id/return', protect, admin, updateReturnStatus);
 router.get('/reports/analytics', protect, admin, getRentalReports);
 
 export default router;

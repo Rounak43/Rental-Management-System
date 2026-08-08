@@ -29,3 +29,15 @@ export const deleteProduct = async (id) => {
   const response = await api.delete(`/products/${id}`);
   return response.data;
 };
+
+export const uploadProductImages = async (formData) => {
+  const response = await api.post('/products/upload', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
+  return response.data;
+};
+
+export const updateProductStatus = async (id, isPublished) => {
+  const response = await api.patch(`/products/${id}/status`, { isPublished });
+  return response.data;
+};

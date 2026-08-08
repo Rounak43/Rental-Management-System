@@ -52,10 +52,23 @@ const ProductDetails = () => {
     loadProduct();
   }, [id]);
 
+  const getImageUrl = (imagePath) => {
+    if (!imagePath) return '';
+    if (imagePath.startsWith('http')) return imagePath;
+    const backendBase = 'http://localhost:5000';
+    return `${backendBase}${imagePath.startsWith('/') ? '' : '/'}${imagePath}`;
+  };
+
   const loadProduct = async () => {
     setLoading(true);
     try {
       const data = await fetchProductById(id);
+      if (data.images && data.images.length > 0) {
+        data.images = data.images.map(getImageUrl);
+      }
+      if (data.image) {
+        data.image = getImageUrl(data.image);
+      }
       setProduct(data);
       const img = data.images?.[0] || data.image || 'https://images.unsplash.com/photo-1516035069371-29a1b244cc32?w=800&auto=format&fit=crop&q=80';
       setSelectedImage(img);

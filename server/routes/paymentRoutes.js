@@ -3,13 +3,17 @@ import {
   processPayment,
   getPayments,
   refundDeposit,
+  getVendorPayments,
 } from '../controllers/paymentController.js';
-import { protect, admin } from '../middleware/authMiddleware.js';
+import { protect, admin, vendor } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
 // Customer payment endpoints
 router.post('/process', protect, processPayment);
+
+// Vendor billing monitoring endpoints
+router.get('/vendor', protect, vendor, getVendorPayments);
 
 // Admin billing monitoring endpoints
 router.get('/', protect, admin, getPayments);

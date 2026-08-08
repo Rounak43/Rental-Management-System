@@ -34,6 +34,10 @@ const PartnerDashboard = lazy(() => import('./pages/partner/PartnerDashboard'));
 const VendorSettings = lazy(() => import('./pages/partner/VendorSettings'));
 const PartnerProducts = lazy(() => import('./pages/partner/PartnerProducts'));
 const PartnerOrders = lazy(() => import('./pages/partner/PartnerOrders'));
+const AddProduct = lazy(() => import('./pages/partner/AddProduct'));
+const EditProduct = lazy(() => import('./pages/partner/EditProduct'));
+const PartnerRevenue = lazy(() => import('./pages/partner/PartnerRevenue'));
+const VendorProfile = lazy(() => import('./pages/partner/VendorProfile'));
 
 // ── Admin pages (lazy loaded)
 const AdminDashboard = lazy(() => import('./pages/admin/AdminDashboard'));
@@ -159,10 +163,42 @@ const AppRoutes = () => {
           }
         />
         <Route
+          path="/partner/products/add"
+          element={
+            <PrivateRoute requiredRole="vendor">
+              <AddProduct />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/partner/products/edit/:id"
+          element={
+            <PrivateRoute requiredRole="vendor">
+              <EditProduct />
+            </PrivateRoute>
+          }
+        />
+        <Route
           path="/partner/orders"
           element={
             <PrivateRoute requiredRole="vendor">
               <PartnerOrders />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/partner/revenue"
+          element={
+            <PrivateRoute requiredRole="vendor">
+              <PartnerRevenue />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/partner/profile"
+          element={
+            <PrivateRoute requiredRole="vendor">
+              <VendorProfile />
             </PrivateRoute>
           }
         />

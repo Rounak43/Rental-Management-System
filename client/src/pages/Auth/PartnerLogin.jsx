@@ -17,9 +17,6 @@ const PartnerLogin = () => {
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
 
-  React.useEffect(() => {
-    clearStaleSession();
-  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -42,16 +39,15 @@ const PartnerLogin = () => {
       setLoading(true);
       setErrorMsg('');
       const loggedUser = await loginWithGoogle();
-      toast.success(`Logged in with Google as ${loggedUser.name}!`);
+      toast.success(`Welcome Partner, ${loggedUser.name}!`);
       
-      if (!loggedUser.phone) {
-        navigate('/complete-profile');
-      } else if (loggedUser.role === 'admin') {
+      if (loggedUser.role === 'admin') {
         navigate('/admin/dashboard');
       } else if (loggedUser.role === 'vendor') {
-        navigate('/vendor/dashboard');
+        navigate('/partner/dashboard');
       } else {
-        navigate('/');
+        // Customer who used the vendor login portal — redirect to customer dashboard
+        navigate('/dashboard');
       }
     } catch (err) {
       setErrorMsg(err.message || 'Google authentication failed.');

@@ -14,3 +14,8 @@ export const refundDeposit = async (id, refundData) => {
   const response = await api.post(`/payments/${id}/refund-deposit`, refundData);
   return response.data;
 };
+
+export const getVendorPayments = async () => {
+  const response = await api.get('/payments/vendor');
+  return response.data;
+};

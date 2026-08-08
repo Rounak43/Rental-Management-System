@@ -6,7 +6,9 @@ import Product from '../models/Product.js';
 // @access  Private/Customer
 export const createRental = async (req, res, next) => {
   try {
-    const { product: productId, rentStartDate, rentEndDate } = req.body;
+    const productId = req.body.product;
+    const rentStartDate = req.body.rentStartDate || req.body.startDate;
+    const rentEndDate = req.body.rentEndDate || req.body.endDate;
 
     if (!productId || !rentStartDate || !rentEndDate) {
       return res.status(400).json({ message: 'Product, start date, and end date are required' });
@@ -110,15 +112,21 @@ export const getAllRentals = async (req, res, next) => {
 
 // @desc    Update pickup status
 // @route   PATCH /api/rentals/:id/pickup
-// @access  Private/Admin
+// @access  Private/Admin/Vendor
 export const updatePickupStatus = async (req, res, next) => {
   try {
-    const rental = await Rental.findByIdAndUpdate(
-      req.params.id,
-      { pickupStatus: 'picked_up', status: 'active' },
-      { new: true }
-    );
+    const rental = await Rental.findById(req.params.id);
     if (!rental) return res.status(404).json({ message: 'Rental not found' });
+
+    // Allow Admin OR the Product Owner (Vendor)
+    const product = await Product.findById(rental.product);
+    if (req.user.role !== 'admin' && product?.owner.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ message: 'Not authorized to update pickup for this rental' });
+    }
+
+    rental.pickupStatus = 'picked_up';
+    rental.status = 'active';
+    await rental.save();
     res.status(200).json(rental);
   } catch (error) {
     next(error);
@@ -127,33 +135,72 @@ export const updatePickupStatus = async (req, res, next) => {
 
 // @desc    Update return status and handle late fees
 // @route   PATCH /api/rentals/:id/return
-// @access  Private/Admin
+// @access  Private/Admin/Vendor
 export const updateReturnStatus = async (req, res, next) => {
   try {
-    const rental = await Rental.findById(req.params.id).populate('product');
+    const rental = await Rental.findById(req.params.id);
     if (!rental) return res.status(404).json({ message: 'Rental not found' });
 
+    // Allow Admin OR the Product Owner (Vendor)
+    const product = await Product.findById(rental.product);
+    if (req.user.role !== 'admin' && product?.owner.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ message: 'Not authorized to update return for this rental' });
+    }
+
+    const { lateFee, status } = req.body;
     const actualReturnDate = new Date();
-    let lateFee = 0;
+    let calculatedLateFee = 0;
 
     if (actualReturnDate > rental.rentEndDate) {
       const overdueDays = Math.ceil(
         (actualReturnDate - rental.rentEndDate) / (1000 * 60 * 60 * 24)
       );
-      lateFee = overdueDays * (rental.product.pricePerDay * 1.5);
+      calculatedLateFee = overdueDays * (product.pricePerDay * 1.5);
     }
 
     rental.returnStatus = 'returned';
-    rental.status = 'returned';
+    rental.status = status || 'returned';
     rental.actualReturnDate = actualReturnDate;
-    rental.lateFee = lateFee;
+    rental.lateFee = lateFee !== undefined ? Number(lateFee) : calculatedLateFee;
     await rental.save();
 
     // Restore product availability
-    await Product.findByIdAndUpdate(rental.product._id, {
+    await Product.findByIdAndUpdate(rental.product, {
       $inc: { availableQuantity: 1 },
       availability: true,
     });
+
+    res.status(200).json(rental);
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Update rental booking status (approve or reject)
+// @route   PATCH /api/rentals/:id/status
+// @access  Private/Vendor/Admin
+export const updateRentalStatus = async (req, res, next) => {
+  try {
+    const { status } = req.body; // 'active', 'cancelled', etc.
+    const rental = await Rental.findById(req.params.id);
+    if (!rental) return res.status(404).json({ message: 'Rental not found' });
+
+    // Check auth: User must be admin OR the owner of the product
+    const product = await Product.findById(rental.product);
+    if (req.user.role !== 'admin' && product?.owner.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ message: 'Not authorized to update this rental status' });
+    }
+
+    if (status === 'cancelled' && rental.status !== 'cancelled') {
+      // Revert product availableQuantity increment if cancelled
+      await Product.findByIdAndUpdate(rental.product, {
+        $inc: { availableQuantity: 1 },
+        availability: true,
+      });
+    }
+
+    rental.status = status;
+    await rental.save();
 
     res.status(200).json(rental);
   } catch (error) {
