@@ -1,19 +1,39 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
+import React, { useContext } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { AuthContext } from '../../context/AuthContext';
 
 const Navbar = () => {
+  const { user, logout } = useContext(AuthContext);
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    logout();
+    navigate('/login');
+  };
+
   return (
     <header className="navbar-header">
       <nav className="navbar">
         <div className="navbar-logo">
-          <Link to="/">RentalSystem</Link>
+          <Link to="/dashboard">RentalSystem</Link>
         </div>
         <ul className="navbar-links">
-          <li><Link to="/products">Browse</Link></li>
+          <li><Link to="/dashboard">Dashboard</Link></li>
+          <li><Link to="/browse">Browse</Link></li>
           <li><Link to="/cart">Cart</Link></li>
           <li><Link to="/profile">Profile</Link></li>
-          <li><Link to="/admin/dashboard">Admin Dashboard</Link></li>
-          <li><Link to="/login">Login</Link></li>
+          {user && user.role === 'admin' && (
+            <li><Link to="/admin/dashboard">Admin Dashboard</Link></li>
+          )}
+          <li>
+            <button 
+              onClick={handleLogout} 
+              className="navbar-logout-btn"
+              style={{ background: 'none', border: 'none', color: 'inherit', font: 'inherit', padding: 0 }}
+            >
+              Logout
+            </button>
+          </li>
         </ul>
       </nav>
     </header>

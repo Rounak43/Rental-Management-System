@@ -1,0 +1,93 @@
+/* Authentication Styles - Signup */
+@import url('./Login.css');
+
+.auth-card.signup-card {
+  max-width: 520px; /* Slightly wider to accommodate double inputs comfortably */
+}
+
+/* Two columns inputs grid for name */
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+/* Password Strength Indicator Styles */
+.password-strength-container {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin-top: -0.25rem;
+}
+
+.password-strength-bar {
+  height: 4px;
+  border-radius: 2px;
+  background-color: var(--border-color);
+  width: 100%;
+  overflow: hidden;
+  position: relative;
+}
+
+.password-strength-fill {
+  height: 100%;
+  width: 0%;
+  transition: width 0.3s ease, background-color 0.3s ease;
+}
+
+/* Color states for strength fill */
+.strength-weak {
+  width: 33.33%;
+  background-color: var(--color-danger);
+}
+
+.strength-medium {
+  width: 66.66%;
+  background-color: var(--color-warning);
+}
+
+.strength-strong {
+  width: 100%;
+  background-color: var(--color-success);
+}
+
+.password-strength-text {
+  font-size: 0.75rem;
+  font-weight: 500;
+  text-align: right;
+  color: var(--text-secondary);
+}
+
+/* Validation Requirement Checklist */
+.password-requirements {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.25rem 0.5rem;
+  margin-top: 0.25rem;
+  padding-left: 0.25rem;
+}
+
+.requirement-item {
+  font-size: 0.72rem;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.requirement-item.valid {
+  color: var(--color-success);
+  font-weight: 500;
+}
+
+.requirement-item.invalid {
+  color: var(--text-secondary);
+}
+
+/* Responsive adjustments for two-column rows */
+@media (max-width: 480px) {
+  .form-row {
+    grid-template-columns: 1fr;
+    gap: 1.25rem;
+  }
+}

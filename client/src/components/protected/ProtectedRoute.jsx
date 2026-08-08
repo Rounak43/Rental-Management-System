@@ -1,18 +1,20 @@
-import React from 'react';
+import React, { useContext } from 'react';
 import { Navigate } from 'react-router-dom';
-// Simulating hook or Context usage for Auth state
-// import { useAuth } from '../../context/AuthContext';
+import { AuthContext } from '../../context/AuthContext';
+import Loader from '../common/Loader';
 
 const ProtectedRoute = ({ children, adminOnly = false }) => {
-  // Placeholder authentication state
-  const isAuthenticated = true; // Set to true by default for navigation testing
-  const userRole = 'admin'; // 'customer' or 'admin'
+  const { user, loading } = useContext(AuthContext);
 
-  if (!isAuthenticated) {
+  if (loading) {
+    return <Loader />;
+  }
+
+  if (!user) {
     return <Navigate to="/login" replace />;
   }
 
-  if (adminOnly && userRole !== 'admin') {
+  if (adminOnly && user.role !== 'admin') {
     return <Navigate to="/" replace />;
   }
 
