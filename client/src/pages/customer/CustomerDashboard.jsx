@@ -1,5 +1,5 @@
 import React, { useContext, useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { AuthContext } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import { getMyRentals, updateReturnStatus } from '../../services/rentalService';
@@ -28,6 +28,7 @@ import './CustomerDashboard.css';
 const CustomerDashboard = () => {
   const { user } = useContext(AuthContext);
   const { showToast } = useToast();
+  const navigate = useNavigate();
 
   const [activeTab, setActiveTab] = useState('rentals');
   const [rentals, setRentals] = useState([]);
@@ -43,8 +44,12 @@ const CustomerDashboard = () => {
   const [actionLoading, setActionLoading] = useState(false);
 
   useEffect(() => {
+    if (user?.role === 'admin') {
+      navigate('/admin/dashboard', { replace: true });
+      return;
+    }
     loadDashboardData();
-  }, []);
+  }, [user]);
 
   const loadDashboardData = async () => {
     setLoading(true);
