@@ -10,24 +10,8 @@ import ChooseAccount from './pages/ChooseAccount';
 import Login from './pages/Auth/Login';
 import Register from './pages/Auth/Register';
 
-// Customer Pages
-import Home from './pages/customer/Home';
-import ProductBrowse from './pages/customer/ProductBrowse';
-import ProductDetails from './pages/customer/ProductDetails';
-import Cart from './pages/customer/Cart';
-import Checkout from './pages/customer/Checkout';
-import Orders from './pages/customer/Orders';
-import Profile from './pages/customer/Profile';
-
-// Admin Pages
+// Protected Pages
 import Dashboard from './pages/admin/Dashboard';
-import ProductManagement from './pages/admin/ProductManagement';
-import CategoryManagement from './pages/admin/CategoryManagement';
-import RentalManagement from './pages/admin/RentalManagement';
-import PickupManagement from './pages/admin/PickupManagement';
-import ReturnManagement from './pages/admin/ReturnManagement';
-import DepositManagement from './pages/admin/DepositManagement';
-import LateFeeManagement from './pages/admin/LateFeeManagement';
 
 // Protected Route Wrap & Layout
 import ProtectedRoute from './components/protected/ProtectedRoute';
@@ -50,23 +34,6 @@ function App() {
               {/* Protected Routes (Authenticated Customer, Vendor & Admin) */}
               <Route element={<ProtectedRoute><ProtectedLayout /></ProtectedRoute>}>
                 <Route path="/dashboard" element={<Dashboard />} />
-                <Route path="/browse" element={<ProductBrowse />} />
-                <Route path="/products/:id" element={<ProductDetails />} />
-                <Route path="/cart" element={<Cart />} />
-                <Route path="/checkout" element={<Checkout />} />
-                <Route path="/orders" element={<Orders />} />
-                <Route path="/profile" element={<Profile />} />
-
-                {/* Admin Sub-routes */}
-                <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
-                <Route path="/admin/dashboard" element={<Dashboard />} />
-                <Route path="/admin/products" element={<ProductManagement />} />
-                <Route path="/admin/categories" element={<CategoryManagement />} />
-                <Route path="/admin/rentals" element={<RentalManagement />} />
-                <Route path="/admin/pickups" element={<PickupManagement />} />
-                <Route path="/admin/returns" element={<ReturnManagement />} />
-                <Route path="/admin/deposits" element={<DepositManagement />} />
-                <Route path="/admin/late-fees" element={<LateFeeManagement />} />
               </Route>
             </Routes>
           </div>
