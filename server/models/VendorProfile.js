@@ -24,6 +24,18 @@ const vendorProfileSchema = new mongoose.Schema(
       trim: true,
       default: '',
     },
+    logo: {
+      type: String,
+      default: '',
+    },
+    contactPhone: {
+      type: String,
+      default: '',
+    },
+    website: {
+      type: String,
+      default: '',
+    },
     rentalCategory: {
       type: String,
       trim: true,

@@ -5,7 +5,6 @@ const paymentSchema = new mongoose.Schema(
     rental: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Rental',
-      required: true,
     },
     user: {
       type: mongoose.Schema.Types.ObjectId,

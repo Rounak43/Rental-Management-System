@@ -17,9 +17,6 @@ const Login = () => {
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
 
-  React.useEffect(() => {
-    clearStaleSession();
-  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -53,14 +50,12 @@ const Login = () => {
       const loggedUser = await loginWithGoogle();
       toast.success(`Logged in with Google as ${loggedUser.name}!`);
       
-      if (!loggedUser.phone) {
-        navigate('/complete-profile');
-      } else if (loggedUser.role === 'admin') {
+      if (loggedUser.role === 'admin') {
         navigate('/admin/dashboard');
       } else if (loggedUser.role === 'vendor') {
-        navigate('/vendor/dashboard');
+        navigate('/partner/dashboard');
       } else {
-        navigate('/');
+        navigate('/dashboard');
       }
     } catch (err) {
       setErrorMsg(err.message || 'Google authentication failed.');

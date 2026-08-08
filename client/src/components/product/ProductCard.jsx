@@ -28,10 +28,17 @@ const ProductCard = ({ product, onWishlistToggle }) => {
     toast.success(`${product.title || product.name || 'Equipment'} added to rental cart!`);
   };
 
-  const image =
-    product.images?.[0] ||
-    product.image ||
-    'https://images.unsplash.com/photo-1516035069371-29a1b244cc32?w=500&auto=format&fit=crop&q=80';
+  const getImageUrl = (imagePath) => {
+    if (!imagePath) return '';
+    if (imagePath.startsWith('http')) return imagePath;
+    const backendBase = 'http://localhost:5000';
+    return `${backendBase}${imagePath.startsWith('/') ? '' : '/'}${imagePath}`;
+  };
+
+  const rawImage = product.images?.[0] || product.image || '';
+  const image = rawImage
+    ? getImageUrl(rawImage)
+    : 'https://images.unsplash.com/photo-1516035069371-29a1b244cc32?w=500&auto=format&fit=crop&q=80';
   const title = product.title || product.name || 'Professional Equipment';
   const price = product.pricePerDay || product.price || 99;
   const deposit = product.securityDeposit || product.deposit || Math.round(price * 3);
