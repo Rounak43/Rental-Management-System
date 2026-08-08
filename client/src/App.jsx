@@ -42,7 +42,6 @@ const VendorProfile = lazy(() => import('./pages/partner/VendorProfile'));
 // ── Admin pages (lazy loaded)
 const AdminDashboard = lazy(() => import('./pages/admin/AdminDashboard'));
 
-
 // ── Protected Route Guard
 const PrivateRoute = ({ children, requiredRole }) => {
   const { user, loading } = useContext(AuthContext);
@@ -52,13 +51,13 @@ const PrivateRoute = ({ children, requiredRole }) => {
     return <Navigate to={requiredRole === 'vendor' ? '/partner/login' : '/login'} replace />;
   }
 
-  // Redirect to complete profile if phone is missing, except when already on `/complete-profile`
-  if (!user.phone && window.location.pathname !== '/complete-profile') {
+  // Redirect to complete profile if phone is missing (exempt admin)
+  if (!user.phone && user.role !== 'admin' && window.location.pathname !== '/complete-profile') {
     return <Navigate to="/complete-profile" replace />;
   }
 
   if (requiredRole && user.role !== requiredRole && user.role !== 'admin') {
-    return <Navigate to={user.role === 'vendor' ? '/vendor/dashboard' : '/dashboard'} replace />;
+    return <Navigate to={user.role === 'admin' ? '/admin/dashboard' : (user.role === 'vendor' ? '/vendor/dashboard' : '/dashboard')} replace />;
   }
   return children;
 };
@@ -212,7 +211,6 @@ const AppRoutes = () => {
             </PrivateRoute>
           }
         />
-
 
         {/* ── Fallback Route ── */}
         <Route path="*" element={<Navigate to="/" replace />} />

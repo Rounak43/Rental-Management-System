@@ -30,7 +30,9 @@ const Login = () => {
       setErrorMsg('');
       const loggedUser = await loginWithEmail(email, password, 'customer');
       toast.success(`Welcome back, ${loggedUser.name || 'User'}!`);
-      if (loggedUser.role === 'vendor') {
+      if (loggedUser.role === 'admin') {
+        navigate('/admin/dashboard');
+      } else if (loggedUser.role === 'vendor') {
         navigate('/partner/dashboard');
       } else {
         navigate('/dashboard');
