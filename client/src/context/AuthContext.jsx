@@ -47,16 +47,15 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const register = async (firstName, lastName, email, phone, password) => {
+  const register = async (userData) => {
     try {
-      const name = `${firstName} ${lastName}`.trim();
-      const data = await registerUser({ name, email, phone, password });
+      const data = await registerUser(userData);
       
       localStorage.setItem('token', data.token);
       
-      const { token, ...userData } = data;
-      localStorage.setItem('user', JSON.stringify(userData));
-      setUser(userData);
+      const { token, ...profileData } = data;
+      localStorage.setItem('user', JSON.stringify(profileData));
+      setUser(profileData);
       
       return data;
     } catch (error) {

@@ -1,5 +1,6 @@
 import bcrypt from 'bcryptjs';
 import User from '../models/User.js';
+import VendorProfile from '../models/VendorProfile.js';
 import { generateToken } from '../utils/helpers.js';
 
 // @desc    Register a new user
@@ -7,10 +8,21 @@ import { generateToken } from '../utils/helpers.js';
 // @access  Public
 export const register = async (req, res, next) => {
   try {
-    const { name, email, password, phone } = req.body;
+    const { 
+      name, 
+      email, 
+      password, 
+      phone, 
+      role,
+      companyName,
+      ownerName,
+      gst,
+      rentalCategory,
+      businessAddress
+    } = req.body;
 
-    if (!name || !email || !password) {
-      return res.status(400).json({ message: 'Please provide all required fields' });
+    if (!email || !password) {
+      return res.status(400).json({ message: 'Please provide email and password' });
     }
 
     // Check if user already exists
@@ -24,15 +36,43 @@ export const register = async (req, res, next) => {
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
+    const userRole = role === 'vendor' ? 'vendor' : 'customer';
+    const finalName = userRole === 'vendor' ? (ownerName || name) : name;
+
+    if (!finalName) {
+      return res.status(400).json({ message: 'Name is required' });
+    }
+
     // Create user
     const user = await User.create({
-      name,
+      name: finalName,
       email,
       password: hashedPassword,
       phone,
+      role: userRole,
     });
 
     if (user) {
+      let vendorProfile = null;
+
+      // If user is registered as a vendor, create profile
+      if (userRole === 'vendor') {
+        if (!companyName) {
+          // Rollback user creation
+          await User.findByIdAndDelete(user._id);
+          return res.status(400).json({ message: 'Company name is required for vendor signup' });
+        }
+
+        vendorProfile = await VendorProfile.create({
+          user: user._id,
+          companyName,
+          ownerName: finalName,
+          gst: gst || '',
+          rentalCategory: rentalCategory || '',
+          businessAddress: businessAddress || {},
+        });
+      }
+
       return res.status(201).json({
         _id: user._id,
         name: user.name,
@@ -40,6 +80,7 @@ export const register = async (req, res, next) => {
         role: user.role,
         phone: user.phone,
         token: generateToken(user._id),
+        vendorProfile,
       });
     } else {
       return res.status(400).json({ message: 'Invalid user data' });
@@ -65,6 +106,12 @@ export const login = async (req, res, next) => {
 
     // Validate credentials
     if (user && (await bcrypt.compare(password, user.password))) {
+      let vendorProfile = null;
+
+      if (user.role === 'vendor') {
+        vendorProfile = await VendorProfile.findOne({ user: user._id });
+      }
+
       return res.status(200).json({
         _id: user._id,
         name: user.name,
@@ -72,6 +119,7 @@ export const login = async (req, res, next) => {
         role: user.role,
         phone: user.phone,
         token: generateToken(user._id),
+        vendorProfile,
       });
     } else {
       return res.status(401).json({ message: 'Invalid credentials' });
@@ -90,12 +138,19 @@ export const getMe = async (req, res, next) => {
       return res.status(401).json({ message: 'Not authorized, user data missing' });
     }
 
+    let vendorProfile = null;
+
+    if (req.user.role === 'vendor') {
+      vendorProfile = await VendorProfile.findOne({ user: req.user._id });
+    }
+
     return res.status(200).json({
       _id: req.user._id,
       name: req.user.name,
       email: req.user.email,
       role: req.user.role,
       phone: req.user.phone,
+      vendorProfile,
     });
   } catch (error) {
     next(error);
