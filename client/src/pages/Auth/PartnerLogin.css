@@ -1,0 +1,415 @@
+/* =========================
+   PARTNER LOGIN — Blue business design
+   Matches design system: #2563EB primary
+========================= */
+
+.partner-login-page {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: #0f172a;
+}
+
+/* ── LEFT VISUAL ── */
+.partner-visual {
+  position: relative;
+  overflow: hidden;
+  background: #0f172a;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 48px;
+}
+
+.partner-visual::before {
+  content: '';
+  position: absolute;
+  top: -100px;
+  right: -80px;
+  width: 420px;
+  height: 420px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(37,99,235,0.22) 0%, rgba(37,99,235,0.06) 55%, transparent 70%);
+  pointer-events: none;
+}
+
+.partner-visual::after {
+  content: '';
+  position: absolute;
+  bottom: -60px;
+  left: -40px;
+  width: 300px;
+  height: 300px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(37,99,235,0.12) 0%, transparent 65%);
+  pointer-events: none;
+}
+
+.partner-visual-brand {
+  position: relative;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  color: white;
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  text-decoration: none;
+}
+
+.partner-visual-brand-icon {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #2563EB;
+  border-radius: 11px;
+  color: white;
+  font-size: 18px;
+  font-weight: 800;
+  box-shadow: 0 8px 20px rgba(37,99,235,0.38);
+}
+
+.partner-visual-body {
+  position: relative;
+  z-index: 2;
+}
+
+.partner-visual-body h2 {
+  font-size: clamp(34px, 3.5vw, 52px);
+  line-height: 1.05;
+  letter-spacing: -2.5px;
+  font-weight: 800;
+  color: white;
+}
+
+.partner-visual-body h2 span {
+  color: #60a5fa;
+}
+
+.partner-visual-body p {
+  margin-top: 18px;
+  color: #94a3b8;
+  font-size: 15px;
+  line-height: 1.8;
+  max-width: 360px;
+}
+
+.partner-visual-features {
+  margin-top: 44px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.partner-feature {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+
+.partner-feature-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: rgba(37,99,235,0.18);
+  border: 1px solid rgba(37,99,235,0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.partner-feature strong {
+  display: block;
+  color: white;
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 2px;
+}
+
+.partner-feature span {
+  color: #64748b;
+  font-size: 12px;
+}
+
+/* ── RIGHT FORM ── */
+.partner-form-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 48px;
+  background: #f8fafc;
+  overflow-y: auto;
+}
+
+.partner-login-card {
+  width: 100%;
+  max-width: 460px;
+  animation: partnerCardIn 0.55s ease forwards;
+}
+
+@keyframes partnerCardIn {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Brand (mobile) */
+.partner-login-brand {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 28px;
+}
+
+.partner-brand-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: #0f172a;
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  text-decoration: none;
+}
+
+.partner-brand-icon {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #2563EB;
+  border-radius: 9px;
+  color: white;
+  font-size: 16px;
+  font-weight: 800;
+  box-shadow: 0 6px 16px rgba(37,99,235,0.28);
+}
+
+/* Header */
+.partner-login-header {
+  text-align: center;
+  margin-bottom: 36px;
+}
+
+.partner-badge {
+  display: inline-block;
+  padding: 4px 12px;
+  background: #dbeafe;
+  color: #1d4ed8;
+  border-radius: 20px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+  margin-bottom: 14px;
+}
+
+.partner-login-header h1 {
+  color: #0f172a;
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: -0.8px;
+  line-height: 1.15;
+}
+
+.partner-login-header p {
+  margin-top: 8px;
+  color: #64748b;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+/* Server error */
+.partner-server-error {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 10px;
+  padding: 12px 16px;
+  margin-bottom: 20px;
+  color: #dc2626;
+  font-size: 14px;
+}
+
+/* Form */
+.partner-login-form { width: 100%; }
+
+.partner-form-group { margin-bottom: 20px; }
+
+.partner-form-group label {
+  display: block;
+  margin-bottom: 7px;
+  color: #0f172a;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.partner-form-group input {
+  width: 100%;
+  height: 50px;
+  padding: 0 16px;
+  background: white;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 10px;
+  outline: none;
+  color: #0f172a;
+  font-family: inherit;
+  font-size: 14px;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.partner-form-group input::placeholder { color: #94a3b8; }
+
+.partner-form-group input:hover { border-color: #cbd5e1; }
+
+.partner-form-group input:focus {
+  border-color: #2563EB;
+  box-shadow: 0 0 0 3px rgba(37,99,235,0.1);
+}
+
+.partner-form-group input.partner-input-error { border-color: #ef4444; }
+
+.partner-field-error {
+  display: block;
+  margin-top: 5px;
+  color: #ef4444;
+  font-size: 12px;
+}
+
+/* Password */
+.partner-password-wrapper { position: relative; }
+
+.partner-password-wrapper input { padding-right: 50px; }
+
+.partner-pw-toggle {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  color: #64748b;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: color 0.2s ease, background 0.2s ease;
+}
+
+.partner-pw-toggle:hover { color: #2563EB; background: #eff6ff; }
+
+.partner-pw-toggle svg { width: 18px; height: 18px; }
+
+/* Forgot */
+.partner-forgot-row {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 24px;
+}
+
+.partner-forgot-link {
+  color: #2563EB;
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.partner-forgot-link:hover { text-decoration: underline; }
+
+/* Submit */
+.partner-submit-btn {
+  width: 100%;
+  height: 50px;
+  border: none;
+  border-radius: 10px;
+  background: #2563EB;
+  color: white;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+  box-shadow: 0 8px 22px rgba(37,99,235,0.22);
+  transition: background 0.25s ease, transform 0.2s ease, box-shadow 0.25s ease;
+}
+
+.partner-submit-btn:hover:not(:disabled) {
+  background: #1d4ed8;
+  transform: translateY(-2px);
+  box-shadow: 0 14px 28px rgba(37,99,235,0.3);
+}
+
+.partner-submit-btn:disabled { opacity: 0.7; cursor: not-allowed; }
+
+/* Loader */
+.partner-loader {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.partner-loader span {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: white;
+  animation: partnerLoader 0.8s infinite ease-in-out;
+}
+
+.partner-loader span:nth-child(2) { animation-delay: 0.12s; }
+.partner-loader span:nth-child(3) { animation-delay: 0.24s; }
+
+@keyframes partnerLoader {
+  0%, 80%, 100% { transform: scale(0.7); opacity: 0.5; }
+  40% { transform: scale(1); opacity: 1; }
+}
+
+/* Register row */
+.partner-register-row {
+  display: flex;
+  justify-content: center;
+  gap: 5px;
+  margin-top: 24px;
+  color: #64748b;
+  font-size: 13px;
+}
+
+.partner-register-row a {
+  color: #2563EB;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.partner-register-row a:hover { text-decoration: underline; }
+
+/* Back home */
+.partner-back-home {
+  display: block;
+  width: fit-content;
+  margin: 18px auto 0;
+  color: #94a3b8;
+  font-size: 12px;
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.partner-back-home:hover { color: #2563EB; }
+
+/* Mobile */
+@media (max-width: 900px) {
+  .partner-login-page { grid-template-columns: 1fr; }
+  .partner-visual { display: none; }
+  .partner-form-panel { padding: 40px 24px; min-height: 100vh; }
+}
+
+@media (max-width: 480px) {
+  .partner-form-panel { padding: 32px 18px; }
+  .partner-login-header h1 { font-size: 24px; }
+}

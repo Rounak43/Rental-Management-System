@@ -59,7 +59,8 @@ const Register = () => {
   // Redirect if already authenticated
   useEffect(() => {
     if (user) {
-      navigate('/dashboard');
+      if (user.role === 'vendor') navigate('/partner/dashboard', { replace: true });
+      else navigate('/dashboard', { replace: true });
     }
   }, [user, navigate]);
 
@@ -112,7 +113,7 @@ const Register = () => {
     }
 
     // Password validations
-    const failedRequirements = Object.values(passwordMetrics).filter(p => !p);
+    const failedRequirements = Object.values(passwordMetrics).filter((p) => !p);
     if (!formData.password) {
       newErrors.password = 'Password is required';
     } else if (failedRequirements.length > 0) {
@@ -193,7 +194,7 @@ const Register = () => {
           },
         });
       }
-      navigate('/dashboard');
+      navigate(activeTab === 'vendor' ? '/partner/dashboard' : '/dashboard');
     } catch (error) {
       console.error('Signup error:', error);
       setServerError(error.response?.data?.message || error.message || 'Registration failed');
@@ -226,158 +227,207 @@ const Register = () => {
   };
 
   return (
-    <div className="auth-container">
-      <div className="auth-card signup-card">
-        <div className="auth-header">
-          <div className="auth-brand" onClick={() => navigate('/')} style={{ cursor: 'pointer' }}>
-            <span>🌐</span> RentSphere
-          </div>
-          <h2>Create Account</h2>
-          <p>Sign up to start renting on RentSphere</p>
-        </div>
+    <div className="signup-page">
 
-        {/* Tab Selection */}
-        <div style={{ display: 'flex', borderBottom: '2px solid var(--border-color)', marginBottom: '2rem' }}>
-          <button
-            type="button"
-            style={{
-              flex: 1,
-              padding: '0.75rem',
-              fontWeight: '600',
-              backgroundColor: 'transparent',
-              border: 'none',
-              borderBottom: activeTab === 'customer' ? '3px solid var(--primary-color)' : 'none',
-              color: activeTab === 'customer' ? 'var(--primary-color)' : 'var(--text-secondary)',
-            }}
-            onClick={() => switchTab('customer')}
-          >
-            Customer Signup
-          </button>
-          <button
-            type="button"
-            style={{
-              flex: 1,
-              padding: '0.75rem',
-              fontWeight: '600',
-              backgroundColor: 'transparent',
-              border: 'none',
-              borderBottom: activeTab === 'vendor' ? '3px solid var(--primary-color)' : 'none',
-              color: activeTab === 'vendor' ? 'var(--primary-color)' : 'var(--text-secondary)',
-            }}
-            onClick={() => switchTab('vendor')}
-          >
-            Vendor Signup
-          </button>
-        </div>
+      {/* ── LEFT VISUAL PANEL ── */}
+      <div className="signup-visual">
+        <Link to="/" className="signup-visual-brand">
+          <span className="signup-visual-brand-icon">R</span>
+          RentSphere
+        </Link>
 
-        {serverError && (
-          <div className="auth-alert-error">
-            <span>⚠️</span>
-            <span>{serverError}</span>
-          </div>
-        )}
+        <div className="signup-visual-body">
+          <h2>
+            Join the<br />
+            <span>marketplace.</span>
+          </h2>
+          <p>
+            Create your RentSphere account and start renting items
+            or list your product inventory to earn passive income.
+          </p>
 
-        <form onSubmit={handleSubmit} className="auth-form" noValidate>
-          {activeTab === 'customer' ? (
-            /* Customer Fields */
-            <div className="form-row">
-              <div className="input-group">
-                <label htmlFor="firstName">First Name</label>
-                <input
-                  type="text"
-                  id="firstName"
-                  name="firstName"
-                  value={formData.firstName}
-                  onChange={handleChange}
-                  placeholder="John"
-                  className={errors.firstName ? 'input-error' : ''}
-                />
-                {errors.firstName && <span className="field-error">{errors.firstName}</span>}
-              </div>
-
-              <div className="input-group">
-                <label htmlFor="lastName">Last Name</label>
-                <input
-                  type="text"
-                  id="lastName"
-                  name="lastName"
-                  value={formData.lastName}
-                  onChange={handleChange}
-                  placeholder="Doe"
-                  className={errors.lastName ? 'input-error' : ''}
-                />
-                {errors.lastName && <span className="field-error">{errors.lastName}</span>}
-              </div>
+          <div className="signup-visual-features">
+            <div className="signup-visual-feature">
+              <span className="signup-visual-feature-dot"></span>
+              Rent from 850+ verified products
             </div>
-          ) : (
-            /* Vendor Fields */
-            <>
+            <div className="signup-visual-feature">
+              <span className="signup-visual-feature-dot"></span>
+              List your items and start earning
+            </div>
+            <div className="signup-visual-feature">
+              <span className="signup-visual-feature-dot"></span>
+              Secure payments & 24/7 support
+            </div>
+            <div className="signup-visual-feature">
+              <span className="signup-visual-feature-dot"></span>
+              Trusted by 10,000+ customers
+            </div>
+          </div>
+        </div>
+
+        <div className="signup-float-card signup-float-one">
+          <div className="signup-float-card-icon">🚀</div>
+          <div className="signup-float-card-text">
+            <strong>Get Started Free</strong>
+            <span>No credit card needed</span>
+          </div>
+        </div>
+
+        <div className="signup-float-card signup-float-two">
+          <div className="signup-float-card-icon">🛡️</div>
+          <div className="signup-float-card-text">
+            <strong>Secure & Private</strong>
+            <span>Your data stays safe</span>
+          </div>
+        </div>
+      </div>
+
+      {/* ── RIGHT FORM PANEL ── */}
+      <div className="signup-form-panel">
+        <div className="signup-card">
+
+          {/* Brand (Mobile only) */}
+          <div className="signup-brand">
+            <Link to="/" className="signup-visual-brand" style={{ color: '#0f172a' }}>
+              <span className="signup-visual-brand-icon">R</span>
+              RentSphere
+            </Link>
+          </div>
+
+          {/* Header */}
+          <div className="signup-header">
+            <h1>Create Account</h1>
+            <p>Sign up to start renting on RentSphere</p>
+          </div>
+
+          {/* Tab Selection */}
+          <div className="auth-tabs">
+            <button
+              type="button"
+              className={`auth-tab ${activeTab === 'customer' ? 'active' : ''}`}
+              onClick={() => switchTab('customer')}
+            >
+              Customer Signup
+            </button>
+            <button
+              type="button"
+              className={`auth-tab ${activeTab === 'vendor' ? 'active' : ''}`}
+              onClick={() => switchTab('vendor')}
+            >
+              Vendor Signup
+            </button>
+          </div>
+
+          {serverError && (
+            <div className="auth-alert-error">
+              <span>⚠️</span>
+              <span>{serverError}</span>
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit} className="auth-form" noValidate>
+            {activeTab === 'customer' ? (
+              /* Customer Fields */
               <div className="form-row">
                 <div className="input-group">
-                  <label htmlFor="companyName">Company Name</label>
+                  <label htmlFor="firstName">First Name</label>
                   <input
                     type="text"
-                    id="companyName"
-                    name="companyName"
-                    value={formData.companyName}
+                    id="firstName"
+                    name="firstName"
+                    value={formData.firstName}
                     onChange={handleChange}
-                    placeholder="Rentals Co."
-                    className={errors.companyName ? 'input-error' : ''}
+                    placeholder="John"
+                    className={errors.firstName ? 'input-error' : ''}
                   />
-                  {errors.companyName && <span className="field-error">{errors.companyName}</span>}
+                  {errors.firstName && <span className="field-error">{errors.firstName}</span>}
                 </div>
 
                 <div className="input-group">
-                  <label htmlFor="ownerName">Owner Name</label>
+                  <label htmlFor="lastName">Last Name</label>
                   <input
                     type="text"
-                    id="ownerName"
-                    name="ownerName"
-                    value={formData.ownerName}
+                    id="lastName"
+                    name="lastName"
+                    value={formData.lastName}
                     onChange={handleChange}
-                    placeholder="John Doe"
-                    className={errors.ownerName ? 'input-error' : ''}
+                    placeholder="Doe"
+                    className={errors.lastName ? 'input-error' : ''}
                   />
-                  {errors.ownerName && <span className="field-error">{errors.ownerName}</span>}
+                  {errors.lastName && <span className="field-error">{errors.lastName}</span>}
                 </div>
               </div>
+            ) : (
+              /* Vendor Fields */
+              <>
+                <div className="form-row">
+                  <div className="input-group">
+                    <label htmlFor="companyName">Company Name</label>
+                    <input
+                      type="text"
+                      id="companyName"
+                      name="companyName"
+                      value={formData.companyName}
+                      onChange={handleChange}
+                      placeholder="Rentals Co."
+                      className={errors.companyName ? 'input-error' : ''}
+                    />
+                    {errors.companyName && <span className="field-error">{errors.companyName}</span>}
+                  </div>
 
-              <div className="form-row">
-                <div className="input-group">
-                  <label htmlFor="gst">GST Number (Optional)</label>
-                  <input
-                    type="text"
-                    id="gst"
-                    name="gst"
-                    value={formData.gst}
-                    onChange={handleChange}
-                    placeholder="22AAAAA0000A1Z5"
-                  />
+                  <div className="input-group">
+                    <label htmlFor="ownerName">Owner Name</label>
+                    <input
+                      type="text"
+                      id="ownerName"
+                      name="ownerName"
+                      value={formData.ownerName}
+                      onChange={handleChange}
+                      placeholder="John Doe"
+                      className={errors.ownerName ? 'input-error' : ''}
+                    />
+                    {errors.ownerName && <span className="field-error">{errors.ownerName}</span>}
+                  </div>
+                </div>
+
+                <div className="form-row">
+                  <div className="input-group">
+                    <label htmlFor="gst">GST Number (Optional)</label>
+                    <input
+                      type="text"
+                      id="gst"
+                      name="gst"
+                      value={formData.gst}
+                      onChange={handleChange}
+                      placeholder="22AAAAA0000A1Z5"
+                    />
+                  </div>
+
+                  <div className="input-group">
+                    <label htmlFor="rentalCategory">Rental Category</label>
+                    <select
+                      id="rentalCategory"
+                      name="rentalCategory"
+                      value={formData.rentalCategory}
+                      onChange={handleChange}
+                    >
+                      <option value="">Select a Category</option>
+                      <option value="Electronics">Electronics</option>
+                      <option value="Vehicles">Vehicles</option>
+                      <option value="Cameras">Cameras</option>
+                      <option value="Tools">Tools</option>
+                      <option value="Furniture">Furniture</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Business Address Header */}
+                <div className="auth-section-divider">
+                  <h4>Business Address</h4>
                 </div>
 
                 <div className="input-group">
-                  <label htmlFor="rentalCategory">Rental Category</label>
-                  <select
-                    id="rentalCategory"
-                    name="rentalCategory"
-                    value={formData.rentalCategory}
-                    onChange={handleChange}
-                    style={{ width: '100%', height: '42px', padding: '0 0.75rem', borderRadius: '8px', border: '1px solid var(--border-color)', backgroundColor: 'var(--background-color)' }}
-                  >
-                    <option value="">Select a Category</option>
-                    <option value="Electronics">Electronics</option>
-                    <option value="Vehicles">Vehicles</option>
-                    <option value="Cameras">Cameras</option>
-                    <option value="Tools">Tools</option>
-                    <option value="Furniture">Furniture</option>
-                  </select>
-                </div>
-              </div>
-
-              {/* Business Address Group */}
-              <div style={{ margin: '0.5rem 0', borderTop: '1px solid var(--border-color)', paddingTop: '1rem' }}>
-                <h4 style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginBottom: '0.75rem' }}>Business Address</h4>
-                <div className="input-group" style={{ marginBottom: '1rem' }}>
                   <label htmlFor="street">Street Address</label>
                   <input
                     type="text"
@@ -390,6 +440,7 @@ const Register = () => {
                   />
                   {errors.street && <span className="field-error">{errors.street}</span>}
                 </div>
+
                 <div className="form-row">
                   <div className="input-group">
                     <label htmlFor="city">City</label>
@@ -404,6 +455,7 @@ const Register = () => {
                     />
                     {errors.city && <span className="field-error">{errors.city}</span>}
                   </div>
+
                   <div className="input-group">
                     <label htmlFor="state">State</label>
                     <input
@@ -418,7 +470,8 @@ const Register = () => {
                     {errors.state && <span className="field-error">{errors.state}</span>}
                   </div>
                 </div>
-                <div className="form-row" style={{ marginTop: '1rem' }}>
+
+                <div className="form-row">
                   <div className="input-group">
                     <label htmlFor="zipCode">Zip/Postal Code</label>
                     <input
@@ -432,6 +485,7 @@ const Register = () => {
                     />
                     {errors.zipCode && <span className="field-error">{errors.zipCode}</span>}
                   </div>
+
                   <div className="input-group">
                     <label htmlFor="country">Country</label>
                     <input
@@ -444,127 +498,131 @@ const Register = () => {
                     />
                   </div>
                 </div>
-              </div>
-            </>
-          )}
-
-          {/* Shared Contact/Password Fields */}
-          <div className="input-group">
-            <label htmlFor="email">
-              {activeTab === 'vendor' ? 'Business Email Address' : 'Email Address'}
-            </label>
-            <input
-              type="email"
-              id="email"
-              name="email"
-              value={formData.email}
-              onChange={handleChange}
-              placeholder={activeTab === 'vendor' ? 'business@company.com' : 'you@example.com'}
-              className={errors.email ? 'input-error' : ''}
-            />
-            {errors.email && <span className="field-error">{errors.email}</span>}
-          </div>
-
-          <div className="input-group">
-            <label htmlFor="phone">Phone Number</label>
-            <input
-              type="tel"
-              id="phone"
-              name="phone"
-              value={formData.phone}
-              onChange={handleChange}
-              placeholder="1234567890"
-              className={errors.phone ? 'input-error' : ''}
-            />
-            {errors.phone && <span className="field-error">{errors.phone}</span>}
-          </div>
-
-          <div className="input-group">
-            <label htmlFor="password">Password</label>
-            <div className="password-wrapper">
-              <input
-                type={showPassword ? 'text' : 'password'}
-                id="password"
-                name="password"
-                value={formData.password}
-                onChange={handleChange}
-                placeholder="••••••••"
-                className={errors.password ? 'input-error' : ''}
-              />
-              <button
-                type="button"
-                className="password-toggle-btn"
-                onClick={() => setShowPassword(!showPassword)}
-              >
-                {showPassword ? <EyeOff size={18} /> : <EyeOff size={18} />}
-              </button>
-            </div>
-            {errors.password && <span className="field-error">{errors.password}</span>}
-
-            {formData.password && (
-              <div className="password-strength-container">
-                <div className="password-strength-bar">
-                  <div className={`password-strength-fill strength-${strengthLevel}`}></div>
-                </div>
-                <div className="password-strength-text">
-                  Strength: {strengthLevel.toUpperCase()}
-                </div>
-                <div className="password-requirements">
-                  <div className={`requirement-item ${passwordMetrics.length ? 'valid' : 'invalid'}`}>
-                    {passwordMetrics.length ? <Check size={12} /> : <X size={12} />} At least 8 chars
-                  </div>
-                  <div className={`requirement-item ${passwordMetrics.uppercase ? 'valid' : 'invalid'}`}>
-                    {passwordMetrics.uppercase ? <Check size={12} /> : <X size={12} />} Uppercase letter
-                  </div>
-                  <div className={`requirement-item ${passwordMetrics.lowercase ? 'valid' : 'invalid'}`}>
-                    {passwordMetrics.lowercase ? <Check size={12} /> : <X size={12} />} Lowercase letter
-                  </div>
-                  <div className={`requirement-item ${passwordMetrics.number ? 'valid' : 'invalid'}`}>
-                    {passwordMetrics.number ? <Check size={12} /> : <X size={12} />} Number digit
-                  </div>
-                  <div className={`requirement-item ${passwordMetrics.specialChar ? 'valid' : 'invalid'}`}>
-                    {passwordMetrics.specialChar ? <Check size={12} /> : <X size={12} />} Special symbol
-                  </div>
-                </div>
-              </div>
+              </>
             )}
-          </div>
 
-          <div className="input-group">
-            <label htmlFor="confirmPassword">Confirm Password</label>
-            <div className="password-wrapper">
+            {/* Shared Contact/Password Fields */}
+            <div className="input-group">
+              <label htmlFor="email">
+                {activeTab === 'vendor' ? 'Business Email Address' : 'Email Address'}
+              </label>
               <input
-                type={showConfirmPassword ? 'text' : 'password'}
-                id="confirmPassword"
-                name="confirmPassword"
-                value={formData.confirmPassword}
+                type="email"
+                id="email"
+                name="email"
+                value={formData.email}
                 onChange={handleChange}
-                placeholder="••••••••"
-                className={errors.confirmPassword ? 'input-error' : ''}
+                placeholder={activeTab === 'vendor' ? 'business@company.com' : 'you@example.com'}
+                className={errors.email ? 'input-error' : ''}
               />
-              <button
-                type="button"
-                className="password-toggle-btn"
-                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-              >
-                {showConfirmPassword ? <EyeOff size={18} /> : <EyeOff size={18} />}
-              </button>
+              {errors.email && <span className="field-error">{errors.email}</span>}
             </div>
-            {errors.confirmPassword && <span className="field-error">{errors.confirmPassword}</span>}
+
+            <div className="input-group">
+              <label htmlFor="phone">Phone Number</label>
+              <input
+                type="tel"
+                id="phone"
+                name="phone"
+                value={formData.phone}
+                onChange={handleChange}
+                placeholder="1234567890"
+                className={errors.phone ? 'input-error' : ''}
+              />
+              {errors.phone && <span className="field-error">{errors.phone}</span>}
+            </div>
+
+            <div className="input-group">
+              <label htmlFor="password">Password</label>
+              <div className="password-wrapper">
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  id="password"
+                  name="password"
+                  value={formData.password}
+                  onChange={handleChange}
+                  placeholder="••••••••"
+                  className={errors.password ? 'input-error' : ''}
+                />
+                <button
+                  type="button"
+                  className="password-toggle-btn"
+                  onClick={() => setShowPassword(!showPassword)}
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                >
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
+              {errors.password && <span className="field-error">{errors.password}</span>}
+
+              {formData.password && (
+                <div className="password-strength-container">
+                  <div className="password-strength-bar">
+                    <div className={`password-strength-fill strength-${strengthLevel}`}></div>
+                  </div>
+                  <div className="password-strength-text">
+                    Strength: {strengthLevel.toUpperCase()}
+                  </div>
+                  <div className="password-requirements">
+                    <div className={`requirement-item ${passwordMetrics.length ? 'valid' : 'invalid'}`}>
+                      {passwordMetrics.length ? <Check size={12} /> : <X size={12} />} At least 8 chars
+                    </div>
+                    <div className={`requirement-item ${passwordMetrics.uppercase ? 'valid' : 'invalid'}`}>
+                      {passwordMetrics.uppercase ? <Check size={12} /> : <X size={12} />} Uppercase letter
+                    </div>
+                    <div className={`requirement-item ${passwordMetrics.lowercase ? 'valid' : 'invalid'}`}>
+                      {passwordMetrics.lowercase ? <Check size={12} /> : <X size={12} />} Lowercase letter
+                    </div>
+                    <div className={`requirement-item ${passwordMetrics.number ? 'valid' : 'invalid'}`}>
+                      {passwordMetrics.number ? <Check size={12} /> : <X size={12} />} Number digit
+                    </div>
+                    <div className={`requirement-item ${passwordMetrics.specialChar ? 'valid' : 'invalid'}`}>
+                      {passwordMetrics.specialChar ? <Check size={12} /> : <X size={12} />} Special symbol
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="input-group">
+              <label htmlFor="confirmPassword">Confirm Password</label>
+              <div className="password-wrapper">
+                <input
+                  type={showConfirmPassword ? 'text' : 'password'}
+                  id="confirmPassword"
+                  name="confirmPassword"
+                  value={formData.confirmPassword}
+                  onChange={handleChange}
+                  placeholder="••••••••"
+                  className={errors.confirmPassword ? 'input-error' : ''}
+                />
+                <button
+                  type="button"
+                  className="password-toggle-btn"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}
+                >
+                  {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
+              {errors.confirmPassword && <span className="field-error">{errors.confirmPassword}</span>}
+            </div>
+
+            <button
+              type="submit"
+              className="auth-submit-btn"
+              disabled={loading}
+            >
+              {loading ? 'Registering Account...' : 'Register'}
+            </button>
+          </form>
+
+          <div className="auth-footer">
+            <span>Already have an account?</span>
+            <Link to={activeTab === 'vendor' ? '/partner/login' : '/login'}>Sign In</Link>
           </div>
 
-          <button
-            type="submit"
-            className="auth-submit-btn"
-            disabled={loading}
-          >
-            {loading ? 'Registering Account...' : 'Register'}
-          </button>
-        </form>
-
-        <div className="auth-footer">
-          Already have an account? 
-          <Link to={`/login?type=${activeTab}`}>Login</Link>
+          <Link to="/" className="signup-back-home">← Back to home</Link>
         </div>
       </div>
     </div>

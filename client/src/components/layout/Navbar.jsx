@@ -15,10 +15,16 @@ const Navbar = () => {
     <header className="navbar-header">
       <nav className="navbar">
         <div className="navbar-logo">
-          <Link to="/dashboard">RentSphere</Link>
+          <Link to="/dashboard">RentalSystem</Link>
         </div>
         <ul className="navbar-links">
           <li><Link to="/dashboard">Dashboard</Link></li>
+          <li><Link to="/browse">Browse</Link></li>
+          <li><Link to="/cart">Cart</Link></li>
+          <li><Link to="/profile">Profile</Link></li>
+          {user && user.role === 'admin' && (
+            <li><Link to="/admin/dashboard">Admin Dashboard</Link></li>
+          )}
           <li>
             <button 
               onClick={handleLogout} 
