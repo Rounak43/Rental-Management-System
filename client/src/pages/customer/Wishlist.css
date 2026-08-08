@@ -1,0 +1,23 @@
+.wishlist-page-wrapper {
+  padding: 2.5rem 1.5rem;
+  min-height: calc(100vh - 160px);
+}
+
+.wishlist-container {
+  max-width: 1250px;
+  margin: 0 auto;
+}
+
+.wishlist-header {
+  margin-bottom: 2rem;
+}
+
+.wishlist-header h2 {
+  font-size: 1.85rem;
+  font-weight: 800;
+}
+
+.wishlist-card-wrapper {
+  display: flex;
+  flex-direction: column;
+}
