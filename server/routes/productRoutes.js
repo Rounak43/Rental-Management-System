@@ -2,21 +2,23 @@ import express from 'express';
 import {
   getProducts,
   getProductById,
+  getMyProducts,
   createProduct,
   updateProduct,
   deleteProduct,
 } from '../controllers/productController.js';
-import { protect, admin } from '../middleware/authMiddleware.js';
+import { protect, admin, vendor } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
-// Public inventory routes
+// Public routes
 router.get('/', getProducts);
 router.get('/:id', getProductById);
 
-// Admin-only management routes
-router.post('/', protect, admin, createProduct);
-router.put('/:id', protect, admin, updateProduct);
-router.delete('/:id', protect, admin, deleteProduct);
+// Vendor - own product management
+router.get('/vendor/my-products', protect, vendor, getMyProducts);
+router.post('/', protect, vendor, createProduct);
+router.put('/:id', protect, vendor, updateProduct);
+router.delete('/:id', protect, vendor, deleteProduct);
 
 export default router;

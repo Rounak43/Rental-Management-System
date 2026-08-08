@@ -1,68 +1,44 @@
 import React, { useState, useContext, useEffect } from 'react';
-import { useNavigate, Link, useLocation } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { AuthContext } from '../../context/AuthContext';
-import { Eye, EyeOff } from 'lucide-react';
 import './Login.css';
 
 const Login = () => {
-  const { user, login, logout } = useContext(AuthContext);
   const navigate = useNavigate();
   const location = useLocation();
+  const { user, login } = useContext(AuthContext);
 
-  // Read role selection from query params ?type=vendor
-  const queryParams = new URLSearchParams(location.search);
-  const initialType = queryParams.get('type') === 'vendor' ? 'vendor' : 'customer';
-
-  const [activeTab, setActiveTab] = useState(initialType);
-  const [formData, setFormData] = useState({
-    email: '',
-    password: '',
-  });
-
-  const [rememberMe, setRememberMe] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [formData, setFormData] = useState({ email: '', password: '', remember: false });
   const [errors, setErrors] = useState({});
   const [serverError, setServerError] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
-  // Sync tab choice if URL changes
-  useEffect(() => {
-    const type = queryParams.get('type');
-    if (type === 'vendor' || type === 'customer') {
-      setActiveTab(type);
-    }
-  }, [location.search]);
-
-  // Redirect if already authenticated
+  // Redirect if already logged in
   useEffect(() => {
     if (user) {
-      navigate('/dashboard');
+      if (user.role === 'vendor') navigate('/partner/dashboard', { replace: true });
+      else navigate('/dashboard', { replace: true });
     }
   }, [user, navigate]);
 
   const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
-    if (errors[name]) {
-      setErrors((prev) => ({ ...prev, [name]: '' }));
-    }
+    const { name, value, type, checked } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: type === 'checkbox' ? checked : value }));
+    if (errors[name]) setErrors((prev) => ({ ...prev, [name]: '' }));
     setServerError('');
   };
 
   const validateForm = () => {
     const newErrors = {};
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-    if (!formData.email) {
-      newErrors.email = activeTab === 'vendor' ? 'Business email is required' : 'Email is required';
-    } else if (!emailRegex.test(formData.email)) {
+    if (!formData.email.trim()) {
+      newErrors.email = 'Email address is required';
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
       newErrors.email = 'Please enter a valid email address';
     }
-
     if (!formData.password) {
       newErrors.password = 'Password is required';
     }
-
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -71,171 +47,200 @@ const Login = () => {
     e.preventDefault();
     if (!validateForm()) return;
 
-    setLoading(true);
+    setIsLoading(true);
     setServerError('');
 
     try {
       const data = await login(formData.email, formData.password);
 
-      // Verify role alignment
-      if (activeTab === 'vendor' && data.role !== 'vendor') {
-        logout(); // Force session clean
-        setServerError('This account is not registered as a Vendor. Please sign in under the Customer tab.');
-        setLoading(false);
-        return;
-      }
-
-      if (activeTab === 'customer' && data.role === 'vendor') {
-        logout();
-        setServerError('This is a Vendor account. Please sign in under the Vendor tab.');
-        setLoading(false);
-        return;
-      }
-
-      if (rememberMe && activeTab === 'customer') {
-        localStorage.setItem('rememberedEmail', formData.email);
+      // Role-based redirect
+      if (data.role === 'vendor') {
+        navigate('/partner/dashboard', { replace: true });
       } else {
-        localStorage.removeItem('rememberedEmail');
+        navigate('/dashboard', { replace: true });
       }
-
-      navigate('/dashboard');
     } catch (error) {
-      console.error('Login error:', error);
-      setServerError(error.response?.data?.message || error.message || 'Invalid email or password');
+      setServerError(
+        error.response?.data?.message || error.message || 'Login failed. Please try again.'
+      );
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
-  const switchTab = (tab) => {
-    setActiveTab(tab);
-    setFormData({ email: '', password: '' });
-    setErrors({});
-    setServerError('');
-  };
-
   return (
-    <div className="auth-container">
-      <div className="auth-card">
-        <div className="auth-header">
-          <div className="auth-brand" onClick={() => navigate('/')} style={{ cursor: 'pointer' }}>
-            <span>🌐</span> RentSphere
-          </div>
-          <h2>Welcome Back</h2>
-          <p>Please select your login type</p>
-        </div>
+    <div className="login-page">
 
-        {/* Tab selection */}
-        <div style={{ display: 'flex', borderBottom: '2px solid var(--border-color)', marginBottom: '2rem' }}>
-          <button
-            type="button"
-            style={{
-              flex: 1,
-              padding: '0.75rem',
-              fontWeight: '600',
-              backgroundColor: 'transparent',
-              border: 'none',
-              borderBottom: activeTab === 'customer' ? '3px solid var(--primary-color)' : 'none',
-              color: activeTab === 'customer' ? 'var(--primary-color)' : 'var(--text-secondary)',
-            }}
-            onClick={() => switchTab('customer')}
-          >
-            Customer Login
-          </button>
-          <button
-            type="button"
-            style={{
-              flex: 1,
-              padding: '0.75rem',
-              fontWeight: '600',
-              backgroundColor: 'transparent',
-              border: 'none',
-              borderBottom: activeTab === 'vendor' ? '3px solid var(--primary-color)' : 'none',
-              color: activeTab === 'vendor' ? 'var(--primary-color)' : 'var(--text-secondary)',
-            }}
-            onClick={() => switchTab('vendor')}
-          >
-            Vendor Login
-          </button>
-        </div>
+      {/* ── LEFT VISUAL PANEL ── */}
+      <div className="login-visual">
+        <Link to="/" className="login-visual-brand">
+          <span className="login-visual-brand-icon">R</span>
+          RentSphere
+        </Link>
 
-        {serverError && (
-          <div className="auth-alert-error">
-            <span>⚠️</span>
-            <span>{serverError}</span>
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit} className="auth-form" noValidate>
-          <div className="input-group">
-            <label htmlFor="email">
-              {activeTab === 'vendor' ? 'Business Email Address' : 'Email Address'}
-            </label>
-            <input
-              type="email"
-              id="email"
-              name="email"
-              value={formData.email}
-              onChange={handleChange}
-              placeholder={activeTab === 'vendor' ? 'info@company.com' : 'you@example.com'}
-              className={errors.email ? 'input-error' : ''}
-            />
-            {errors.email && <span className="field-error">{errors.email}</span>}
-          </div>
-
-          <div className="input-group">
-            <label htmlFor="password">Password</label>
-            <div className="password-wrapper">
-              <input
-                type={showPassword ? 'text' : 'password'}
-                id="password"
-                name="password"
-                value={formData.password}
-                onChange={handleChange}
-                placeholder="••••••••"
-                className={errors.password ? 'input-error' : ''}
-              />
-              <button
-                type="button"
-                className="password-toggle-btn"
-                onClick={() => setShowPassword(!showPassword)}
-              >
-                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-              </button>
+        <div className="login-visual-body">
+          <h2>
+            Welcome<br />
+            <span>back.</span>
+          </h2>
+          <p>
+            Sign in to your RentSphere customer account and start
+            renting products from verified rental partners today.
+          </p>
+          <div className="login-visual-stats">
+            <div className="login-visual-stat">
+              <strong>10K+</strong>
+              <span>Rentals completed</span>
             </div>
-            {errors.password && <span className="field-error">{errors.password}</span>}
+            <div className="login-visual-divider" />
+            <div className="login-visual-stat">
+              <strong>500+</strong>
+              <span>Verified vendors</span>
+            </div>
+            <div className="login-visual-divider" />
+            <div className="login-visual-stat">
+              <strong>850+</strong>
+              <span>Products listed</span>
+            </div>
           </div>
+        </div>
 
-          <div className="form-options">
-            {activeTab === 'customer' ? (
-              <label className="remember-me">
-                <input
-                  type="checkbox"
-                  checked={rememberMe}
-                  onChange={(e) => setRememberMe(e.target.checked)}
-                />
-                Remember Me
-              </label>
-            ) : (
-              <div />
-            )}
-            <Link to="/forgot-password" className="forgot-password-link">
-              Forgot Password?
+        <div className="login-float-card login-float-one">
+          <div className="login-float-card-icon">🔑</div>
+          <div className="login-float-card-text">
+            <strong>Secure Login</strong>
+            <span>Your data is protected</span>
+          </div>
+        </div>
+        <div className="login-float-card login-float-two">
+          <div className="login-float-card-icon">✅</div>
+          <div className="login-float-card-text">
+            <strong>Verified Vendors</strong>
+            <span>Trusted marketplace</span>
+          </div>
+        </div>
+      </div>
+
+      {/* ── RIGHT FORM PANEL ── */}
+      <div className="login-form-panel">
+        <div className="login-card">
+
+          {/* Brand (mobile) */}
+          <div className="login-brand">
+            <Link to="/" className="login-brand-link">
+              <span className="login-brand-icon">R</span>
+              <span>RentSphere</span>
             </Link>
           </div>
 
-          <button
-            type="submit"
-            className="auth-submit-btn"
-            disabled={loading}
-          >
-            {loading ? 'Logging in...' : 'Sign In'}
-          </button>
-        </form>
+          {/* Header */}
+          <div className="login-header">
+            <h1>Customer Login</h1>
+            <p>Sign in to browse and rent products</p>
+          </div>
 
-        <div className="auth-footer">
-          Don't have an account? 
-          <Link to={`/choose-account`}>Register Here</Link>
+          {/* Server error */}
+          {serverError && (
+            <div style={{
+              background: '#fef2f2',
+              border: '1px solid #fecaca',
+              borderRadius: '10px',
+              padding: '12px 16px',
+              marginBottom: '20px',
+              color: '#dc2626',
+              fontSize: '14px',
+            }}>
+              {serverError}
+            </div>
+          )}
+
+          {/* Form */}
+          <form className="login-form" onSubmit={handleSubmit} noValidate>
+
+            <div className="form-group">
+              <label htmlFor="email">Email Address</label>
+              <input
+                id="email"
+                type="email"
+                name="email"
+                value={formData.email}
+                onChange={handleChange}
+                placeholder="you@example.com"
+                autoComplete="email"
+                className={errors.email ? 'input-error' : ''}
+              />
+              {errors.email && <span className="field-error">{errors.email}</span>}
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="password">Password</label>
+              <div className="password-wrapper">
+                <input
+                  id="password"
+                  type={showPassword ? 'text' : 'password'}
+                  name="password"
+                  value={formData.password}
+                  onChange={handleChange}
+                  placeholder="••••••••"
+                  autoComplete="current-password"
+                  className={errors.password ? 'input-error' : ''}
+                />
+                <button
+                  type="button"
+                  className="password-toggle"
+                  onClick={() => setShowPassword((p) => !p)}
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                >
+                  {showPassword ? (
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M3 3l18 18" /><path d="M10.6 10.6a2 2 0 0 0 2.8 2.8" />
+                      <path d="M9.9 4.2A10.9 10.9 0 0 1 12 4c7 0 10 8 10 8a17.4 17.4 0 0 1-3 4.2" />
+                      <path d="M6.2 6.2C3.7 8.1 2 12 2 12s3 8 10 8a10.9 10.9 0 0 0 3.3-.5" />
+                    </svg>
+                  ) : (
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M2 12s3-8 10-8 10 8 10 8-3 8-10 8S2 12 2 12Z" />
+                      <circle cx="12" cy="12" r="3" />
+                    </svg>
+                  )}
+                </button>
+              </div>
+              {errors.password && <span className="field-error">{errors.password}</span>}
+            </div>
+
+            <div className="login-options">
+              <label className="remember-me">
+                <input type="checkbox" name="remember" checked={formData.remember} onChange={handleChange} />
+                <span className="custom-checkbox"></span>
+                <span>Remember Me</span>
+              </label>
+              <Link to="/forgot-password" className="forgot-link">Forgot Password?</Link>
+            </div>
+
+            <button type="submit" className="login-submit" disabled={isLoading}>
+              {isLoading ? (
+                <span className="button-loader">
+                  <span></span><span></span><span></span>
+                </span>
+              ) : 'Sign In'}
+            </button>
+          </form>
+
+          <div className="login-register">
+            <span>Don't have an account?</span>
+            <Link to="/register?type=customer">Register Here</Link>
+          </div>
+
+          <div style={{ textAlign: 'center', marginTop: '16px' }}>
+            <Link
+              to="/partner/login"
+              style={{ color: 'var(--muted)', fontSize: '13px', textDecoration: 'none' }}
+            >
+              Are you a Rental Partner? <strong style={{ color: 'var(--orange)' }}>Login here →</strong>
+            </Link>
+          </div>
+
+          <Link to="/" className="back-home">← Back to home</Link>
         </div>
       </div>
     </div>

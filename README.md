@@ -33,7 +33,7 @@ Rental-Management-System/
 │       │   └── rentalService.js  # API actions for carts, checkouts, and orders
 │       ├── utils/              # Helper functions (converters, custom formats)
 │       │   └── formatters.js   # Date, currency, status layout helpers
-│       ├── App.jsx             # React routing setup and central context wrapping
+│       ├── App.jsx             # React routing setup and central context wrap
 │       └── main.jsx            # Frontend application entry point
 │
 ├── server/                     # Backend Node.js & Express API Application
