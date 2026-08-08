@@ -16,6 +16,7 @@ import Register from './pages/Auth/Register';
 import PartnerLogin from './pages/Auth/PartnerLogin';
 import ForgotPassword from './pages/Auth/ForgotPassword';
 import VerifyEmail from './pages/Auth/VerifyEmail';
+import CompleteProfile from './pages/Auth/CompleteProfile';
 
 // ── Customer & Catalog pages (lazy loaded)
 const ProductBrowse = lazy(() => import('./pages/customer/ProductBrowse'));
@@ -46,8 +47,14 @@ const PrivateRoute = ({ children, requiredRole }) => {
   if (!user) {
     return <Navigate to={requiredRole === 'vendor' ? '/partner/login' : '/login'} replace />;
   }
+
+  // Redirect to complete profile if phone is missing, except when already on `/complete-profile`
+  if (!user.phone && window.location.pathname !== '/complete-profile') {
+    return <Navigate to="/complete-profile" replace />;
+  }
+
   if (requiredRole && user.role !== requiredRole && user.role !== 'admin') {
-    return <Navigate to={user.role === 'vendor' ? '/partner/dashboard' : '/dashboard'} replace />;
+    return <Navigate to={user.role === 'vendor' ? '/vendor/dashboard' : '/dashboard'} replace />;
   }
   return children;
 };
@@ -67,6 +74,7 @@ const AppRoutes = () => {
         <Route path="/partner/login" element={<PartnerLogin />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/verify-email" element={<VerifyEmail />} />
+        <Route path="/complete-profile" element={<CompleteProfile />} />
         <Route path="/signup" element={<Navigate to="/register" replace />} />
 
         {/* ── Product Catalog & Shopping ── */}
@@ -120,6 +128,14 @@ const AppRoutes = () => {
         {/* ── Partner / Vendor Protected Routes ── */}
         <Route
           path="/partner/dashboard"
+          element={
+            <PrivateRoute requiredRole="vendor">
+              <PartnerDashboard />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/vendor/dashboard"
           element={
             <PrivateRoute requiredRole="vendor">
               <PartnerDashboard />

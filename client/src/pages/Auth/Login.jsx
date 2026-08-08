@@ -50,12 +50,17 @@ const Login = () => {
     try {
       setLoading(true);
       setErrorMsg('');
-      const loggedUser = await loginWithGoogle('customer');
+      const loggedUser = await loginWithGoogle();
       toast.success(`Logged in with Google as ${loggedUser.name}!`);
-      if (loggedUser.role === 'vendor') {
-        navigate('/partner/dashboard');
+      
+      if (!loggedUser.phone) {
+        navigate('/complete-profile');
+      } else if (loggedUser.role === 'admin') {
+        navigate('/admin/dashboard');
+      } else if (loggedUser.role === 'vendor') {
+        navigate('/vendor/dashboard');
       } else {
-        navigate('/dashboard');
+        navigate('/');
       }
     } catch (err) {
       setErrorMsg(err.message || 'Google authentication failed.');

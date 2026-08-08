@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import connectDB from './config/db.js';
+import './config/firebaseAdmin.js';
 import mainRouter from './routes/index.js';
 import { notFound, errorHandler } from './middleware/errorMiddleware.js';
 

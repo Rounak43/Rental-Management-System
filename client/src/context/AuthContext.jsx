@@ -12,7 +12,7 @@ import {
   onAuthStateChanged,
   deleteUser as fbDeleteUser
 } from '../config/firebase';
-import { loginUser, registerUser, fetchCurrentUser } from '../services/authService';
+import { loginUser, registerUser, fetchCurrentUser, googleAuthService } from '../services/authService';
 
 export const AuthContext = createContext();
 
@@ -197,63 +197,44 @@ export const AuthProvider = ({ children }) => {
   };
 
   // Google Popup Login
-  const loginWithGoogle = async (targetRole = 'customer') => {
+  const loginWithGoogle = async () => {
     try {
       setLoading(true);
-      let googleUser = null;
-      let fbUid = null;
-      let email = '';
-      let displayName = '';
+      const result = await signInWithPopup(auth, googleProvider);
+      const googleUser = result.user;
+      const fbUid = googleUser.uid;
+      const email = googleUser.email;
+      const displayName = googleUser.displayName || (email ? email.split('@')[0] : 'Google User');
 
-      try {
-        const result = await signInWithPopup(auth, googleProvider);
-        googleUser = result.user;
-        fbUid = googleUser.uid;
-        email = googleUser.email;
-        displayName = googleUser.displayName || (email ? email.split('@')[0] : 'Google User');
-        setFirebaseUser(googleUser);
-        setFirebaseUid(fbUid);
-        setIsVerified(googleUser.emailVerified);
+      setFirebaseUser(googleUser);
+      setFirebaseUid(fbUid);
+      setIsVerified(googleUser.emailVerified);
 
-        const token = await googleUser.getIdToken();
-        setIdToken(token);
-      } catch (fbErr) {
-        if (
-          fbErr.code === 'auth/popup-closed-by-user' ||
-          fbErr.code === 'auth/cancelled-popup-request'
-        ) {
-          setLoading(false);
-          throw new Error('Google sign-in popup was closed before completing authentication.');
-        }
+      const token = await googleUser.getIdToken();
+      setIdToken(token);
 
-        console.warn('[AuthContext] Firebase Google Auth popup notice:', fbErr.message || fbErr);
-        // Fallback for local development or restricted browser popup environment
-        email = targetRole === 'vendor' ? 'google.vendor@rentsphere.com' : 'google.customer@rentsphere.com';
-        displayName = targetRole === 'vendor' ? 'Google Partner User' : 'Google Verified Customer';
-        fbUid = `google_auth_${targetRole}_9982`;
-      }
+      // Verify token with backend
+      const backendData = await googleAuthService({
+        idToken: token,
+        uid: fbUid,
+        email,
+        displayName,
+        photoURL: googleUser.photoURL,
+        emailVerified: googleUser.emailVerified,
+        providerId: googleUser.providerId || (googleUser.providerData && googleUser.providerData[0]?.providerId),
+      });
 
-      // Try login to backend user
-      let backendData;
-      try {
-        backendData = await loginUser({ email, password: `GAuth_${fbUid}_Secret` });
-      } catch (loginErr) {
-        // Auto-register backend user if first time
-        backendData = await registerUser({
-          name: displayName,
-          email,
-          password: `GAuth_${fbUid}_Secret`,
-          role: targetRole === 'vendor' ? 'vendor' : 'customer',
-          companyName: targetRole === 'vendor' ? `${displayName}'s Equipment Hub` : undefined,
-          ownerName: displayName,
-        });
-      }
-
-      syncSessionData(backendData.token, backendData, googleUser);
+      syncSessionData(backendData.token, backendData.user, googleUser);
       setLoading(false);
-      return backendData;
+      return backendData.user;
     } catch (error) {
       setLoading(false);
+      if (
+        error.code === 'auth/popup-closed-by-user' ||
+        error.code === 'auth/cancelled-popup-request'
+      ) {
+        throw new Error('Google sign-in popup was closed before completing authentication.');
+      }
       throw error;
     }
   };

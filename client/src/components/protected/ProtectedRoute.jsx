@@ -29,6 +29,11 @@ const ProtectedRoute = ({
     return <Navigate to={redirectTo} replace />;
   }
 
+  // Redirect to complete profile if phone is missing, except when already on `/complete-profile`
+  if (!user.phone && window.location.pathname !== '/complete-profile') {
+    return <Navigate to="/complete-profile" replace />;
+  }
+
   // Legacy adminOnly check
   if (adminOnly && user.role !== 'admin') {
     return <Navigate to="/" replace />;
@@ -38,7 +43,7 @@ const ProtectedRoute = ({
   if (role && user.role !== role && user.role !== 'admin') {
     // Redirect vendor to their dashboard if they land on customer route
     if (user.role === 'vendor') {
-      return <Navigate to="/partner/dashboard" replace />;
+      return <Navigate to="/vendor/dashboard" replace />;
     }
     // Redirect customer to their dashboard if they land on vendor route
     return <Navigate to="/dashboard" replace />;

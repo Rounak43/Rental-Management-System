@@ -17,7 +17,6 @@ const userSchema = new mongoose.Schema(
     },
     password: {
       type: String,
-      required: [true, 'Password is required'],
     },
     role: {
       type: String,
@@ -33,6 +32,18 @@ const userSchema = new mongoose.Schema(
       default: '',
     },
     isVerified: {
+      type: Boolean,
+      default: false,
+    },
+    firebaseUid: {
+      type: String,
+      index: true,
+    },
+    authProvider: {
+      type: String,
+      default: 'local',
+    },
+    emailVerified: {
       type: Boolean,
       default: false,
     },
