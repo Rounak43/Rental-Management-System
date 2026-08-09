@@ -1,3 +1,5 @@
+
+
 # RentSphere — Complete Software Documentation
 
 > **Version:** 1.0.0 | **Stack:** MERN + Firebase | **Last Updated:** August 2026
