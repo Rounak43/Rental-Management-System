@@ -9,6 +9,9 @@ import {
 import { getAllRentals, updatePickupStatus, updateReturnStatus, getRentalReports } from '../../services/rentalService';
 import { fetchProducts, deleteProduct } from '../../services/productService';
 import { getCategories, createCategory, deleteCategory } from '../../services/categoryService';
+import { getPayments } from '../../services/paymentService';
+import { getPlatformSettings, updatePlatformSettings } from '../../services/platformSettingsService';
+import { downloadInvoicePdf } from '../../utils/invoicePdf';
 import {
   LayoutDashboard, Users, Store, Package, ShoppingBag, Tag,
   TrendingUp, AlertTriangle, CheckCircle2, Clock, RotateCcw,
@@ -88,6 +91,7 @@ const AdminDashboard = () => {
   const [rentals, setRentals]       = useState([]);
   const [products, setProducts]     = useState([]);
   const [categories, setCategories] = useState([]);
+  const [payments, setPayments]     = useState([]);
   const [usersStats, setUsersStats] = useState({ totalUsers: 0, totalCustomers: 0, totalVendors: 0 });
 
   /* ── Table & Filter States ───────────────────────────────── */
@@ -127,17 +131,19 @@ const AdminDashboard = () => {
   /* ── Data Loaders ────────────────────────────────────────── */
   useEffect(() => {
     loadAllData();
-  }, [activeSection, roleFilter]);
+  }, [roleFilter]); // Load on mount + when roleFilter changes only; NOT on activeSection change
 
   const loadAllData = async () => {
     setLoading(true);
     try {
-      const [analyticsData, usersData, rentalsData, productsData, categoriesData] = await Promise.all([
+      const [analyticsData, usersData, rentalsData, productsData, categoriesData, paymentsData, settingsData] = await Promise.all([
         getRentalReports().catch(() => ({ total: 0, active: 0, pending: 0, returned: 0, revenue: 0 })),
         fetchAllUsers({ role: roleFilter !== 'all' ? roleFilter : undefined }).catch(() => ({ users: [], stats: {} })),
         getAllRentals().catch(() => []),
         fetchProducts({ limit: 100 }).catch(() => ({ products: [] })),
         getCategories().catch(() => []),
+        getPayments().catch(() => []),
+        getPlatformSettings().catch(() => null),
       ]);
 
       if (analyticsData) setAnalytics(analyticsData);
@@ -146,6 +152,16 @@ const AdminDashboard = () => {
       if (Array.isArray(rentalsData)) setRentals(rentalsData);
       if (productsData?.products) setProducts(productsData.products);
       if (Array.isArray(categoriesData)) setCategories(categoriesData);
+      if (Array.isArray(paymentsData)) setPayments(paymentsData);
+      if (settingsData) {
+        setSettingsForm({
+          platformName: settingsData.platformName || 'RentSphere',
+          contactEmail: settingsData.contactEmail || 'support@rentsphere.com',
+          commissionRate: String(settingsData.commissionRate ?? 10),
+          taxRate: String(settingsData.taxRate ?? 18),
+          maintenanceMode: settingsData.maintenanceMode ?? false,
+        });
+      }
     } catch (e) {
       console.warn('Dashboard data sync notice:', e);
     } finally {
@@ -172,8 +188,15 @@ const AdminDashboard = () => {
     try {
       await deleteUserAccount(userToDelete._id);
       showToast(`Account "${userToDelete.email}" deleted successfully.`, 'success');
+      // Optimistic update - remove from local list immediately
+      setUsersList(prev => prev.filter(u => u._id !== userToDelete._id));
+      setUsersStats(prev => ({
+        ...prev,
+        totalUsers: prev.totalUsers - 1,
+        totalCustomers: userToDelete.role === 'customer' ? prev.totalCustomers - 1 : prev.totalCustomers,
+        totalVendors: userToDelete.role === 'vendor' ? prev.totalVendors - 1 : prev.totalVendors,
+      }));
       setUserToDelete(null);
-      loadAllData();
     } catch (e) {
       showToast(e.message || 'Failed to delete user account', 'error');
     } finally {
@@ -186,8 +209,10 @@ const AdminDashboard = () => {
     try {
       const res = await bulkDeleteAllCustomerVendorAccounts();
       showToast(res.message || 'All customer & vendor accounts purged.', 'success');
+      // Optimistic update - remove all customers and vendors from local list
+      setUsersList(prev => prev.filter(u => u.role === 'admin'));
+      setUsersStats({ totalUsers: 0, totalCustomers: 0, totalVendors: 0 });
       setShowBulkDeleteModal(false);
-      loadAllData();
     } catch (e) {
       showToast(e.message || 'Bulk deletion failed', 'error');
     } finally {
@@ -201,8 +226,9 @@ const AdminDashboard = () => {
     try {
       await updatePickupStatus(rentalPickupTarget._id, {});
       showToast('Pickup confirmed! Rental status set to Active.', 'success');
+      // Optimistic update - change rental status locally
+      setRentals(prev => prev.map(r => r._id === rentalPickupTarget._id ? { ...r, status: 'active', pickupStatus: 'picked_up' } : r));
       setRentalPickupTarget(null);
-      loadAllData();
     } catch (e) {
       showToast(e.message || 'Pickup update failed', 'error');
     } finally {
@@ -215,13 +241,14 @@ const AdminDashboard = () => {
     setActionLoading(true);
     try {
       const res = await updateReturnStatus(rentalReturnTarget._id, {});
-      const lateFee = res?.rental?.lateFee || res?.lateFee;
+      const lateFee = res?.rental?.lateFee || res?.lateFee || 0;
       showToast(
         lateFee > 0 ? `Returned! Late fee charged: ${fmtCurrency(lateFee)}` : 'Rental returned on time with 0 late fee.',
         'success'
       );
+      // Optimistic update - change rental status and attach late fee locally
+      setRentals(prev => prev.map(r => r._id === rentalReturnTarget._id ? { ...r, status: 'returned', returnStatus: 'returned', lateFee } : r));
       setRentalReturnTarget(null);
-      loadAllData();
     } catch (e) {
       showToast(e.message || 'Return process failed', 'error');
     } finally {
@@ -235,8 +262,9 @@ const AdminDashboard = () => {
     try {
       await deleteProduct(productDeleteTarget._id);
       showToast(`Product "${productDeleteTarget.title}" deleted.`, 'success');
+      // Optimistic update - remove product from local list immediately
+      setProducts(prev => prev.filter(p => p._id !== productDeleteTarget._id));
       setProductDeleteTarget(null);
-      loadAllData();
     } catch (e) {
       showToast(e.message || 'Delete product failed', 'error');
     } finally {
@@ -249,11 +277,12 @@ const AdminDashboard = () => {
     if (!catForm.name.trim()) return showToast('Category name is required', 'error');
     setActionLoading(true);
     try {
-      await createCategory(catForm);
+      const newCat = await createCategory(catForm);
       showToast(`Category "${catForm.name}" created!`, 'success');
+      // Optimistic update - add new category to local list immediately
+      setCategories(prev => [...prev, newCat]);
       setShowCatModal(false);
       setCatForm({ name: '', description: '' });
-      loadAllData();
     } catch (e) {
       showToast(e.message || 'Create category failed', 'error');
     } finally {
@@ -265,7 +294,8 @@ const AdminDashboard = () => {
     try {
       await deleteCategory(cat._id);
       showToast(`Category "${cat.name}" deleted.`, 'success');
-      loadAllData();
+      // Optimistic update - remove category from local list immediately
+      setCategories(prev => prev.filter(c => c._id !== cat._id));
     } catch (e) {
       showToast(e.message || 'Delete category failed', 'error');
     }
@@ -281,9 +311,23 @@ const AdminDashboard = () => {
     setNotifForm({ target: 'all', title: '', message: '', type: 'system' });
   };
 
-  const handleSaveSettings = (e) => {
+  const handleSaveSettings = async (e) => {
     e.preventDefault();
-    showToast('Platform settings saved successfully!', 'success');
+    setActionLoading(true);
+    try {
+      await updatePlatformSettings({
+        platformName: settingsForm.platformName,
+        contactEmail: settingsForm.contactEmail,
+        commissionRate: Number(settingsForm.commissionRate),
+        taxRate: Number(settingsForm.taxRate),
+        maintenanceMode: settingsForm.maintenanceMode,
+      });
+      showToast('Platform settings saved! Commission & GST rates updated.', 'success');
+    } catch (e) {
+      showToast(e.message || 'Failed to save settings', 'error');
+    } finally {
+      setActionLoading(false);
+    }
   };
 
   /* ── Filtered Datasets ───────────────────────────────────── */
@@ -503,9 +547,9 @@ const AdminDashboard = () => {
                 <div className="admin-stat-card">
                   <div className="admin-stat-icon icon-green"><DollarSign size={20} /></div>
                   <div className="admin-stat-info">
-                    <span className="admin-stat-label">Admin Commission (10%)</span>
-                    <div className="admin-stat-value">{fmtCurrency(analytics.revenue * 0.1)}</div>
-                    <span className="trend-indicator trend-up"><ArrowUpRight size={12} /> +10.0% Cut</span>
+                    <span className="admin-stat-label">Admin Commission ({settingsForm.commissionRate}%)</span>
+                    <div className="admin-stat-value">{fmtCurrency(analytics.revenue * (Number(settingsForm.commissionRate) / 100))}</div>
+                    <span className="trend-indicator trend-up"><ArrowUpRight size={12} /> +{settingsForm.commissionRate}% Cut</span>
                   </div>
                 </div>
 
@@ -513,7 +557,7 @@ const AdminDashboard = () => {
                   <div className="admin-stat-icon icon-purple"><TrendingUp size={20} /></div>
                   <div className="admin-stat-info">
                     <span className="admin-stat-label">Admin Net Profit</span>
-                    <div className="admin-stat-value">{fmtCurrency(analytics.revenue * 0.1 + rentals.reduce((s, r) => s + (r.lateFee || 0), 0))}</div>
+                    <div className="admin-stat-value">{fmtCurrency(analytics.revenue * (Number(settingsForm.commissionRate) / 100) + rentals.reduce((s, r) => s + (r.lateFee || 0), 0))}</div>
                     <span className="trend-indicator trend-up"><ArrowUpRight size={12} /> Comm + Late Fee</span>
                   </div>
                 </div>
@@ -557,8 +601,8 @@ const AdminDashboard = () => {
                       <span className="mini-metric-value">{fmtCurrency(analytics.revenue)}</span>
                     </div>
                     <div className="mini-metric">
-                      <span className="mini-metric-label">Platform Commission (10%)</span>
-                      <span className="mini-metric-value" style={{ color: 'var(--primary)' }}>{fmtCurrency(analytics.revenue * 0.1)}</span>
+                      <span className="mini-metric-label">Platform Commission ({settingsForm.commissionRate}%)</span>
+                      <span className="mini-metric-value" style={{ color: 'var(--primary)' }}>{fmtCurrency(analytics.revenue * (Number(settingsForm.commissionRate) / 100))}</span>
                     </div>
                     <div className="mini-metric">
                       <span className="mini-metric-label">Late Charges Collected</span>
@@ -566,7 +610,7 @@ const AdminDashboard = () => {
                     </div>
                     <div className="mini-metric">
                       <span className="mini-metric-label">Net Admin Profit</span>
-                      <span className="mini-metric-value" style={{ color: 'var(--success)' }}>{fmtCurrency(analytics.revenue * 0.1 + rentals.reduce((s, r) => s + (r.lateFee || 0), 0))}</span>
+                      <span className="mini-metric-value" style={{ color: 'var(--success)' }}>{fmtCurrency(analytics.revenue * (Number(settingsForm.commissionRate) / 100) + rentals.reduce((s, r) => s + (r.lateFee || 0), 0))}</span>
                     </div>
                   </div>
                 </div>
@@ -577,32 +621,184 @@ const AdminDashboard = () => {
           {/* ══════════════════════════════════════════════════
               MODULE 2: ANALYTICS
           ══════════════════════════════════════════════════ */}
-          {activeSection === 'analytics' && (
-            <>
-              <div className="admin-page-header">
-                <div>
-                  <h1 className="admin-page-title">Advanced Analytics</h1>
-                  <p className="admin-page-subtitle">Deep dive into revenue breakdown, growth metrics & rental volume</p>
-                </div>
-              </div>
+          {activeSection === 'analytics' && (() => {
+            // Compute monthly rental counts from real data
+            const monthlyCounts = {};
+            const monthLabels = [];
+            for (let i = 5; i >= 0; i--) {
+              const d = new Date();
+              d.setMonth(d.getMonth() - i);
+              const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+              const label = d.toLocaleString('default', { month: 'short' });
+              monthlyCounts[key] = { label, count: 0, revenue: 0 };
+              monthLabels.push(key);
+            }
+            rentals.forEach(r => {
+              const d = new Date(r.createdAt);
+              const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+              if (monthlyCounts[key]) {
+                monthlyCounts[key].count += 1;
+                monthlyCounts[key].revenue += (r.totalCost || 0);
+              }
+            });
+            const maxCount = Math.max(...monthLabels.map(k => monthlyCounts[k].count), 1);
+            const maxRevenue = Math.max(...monthLabels.map(k => monthlyCounts[k].revenue), 1);
 
-              <div className="admin-panel">
-                <div className="admin-panel-header">
-                  <h2 className="admin-panel-title"><DollarSign size={18} style={{ color: 'var(--primary)' }} /> Revenue Analytics (Monthly)</h2>
+            // Compute category distribution from products
+            const catMap = {};
+            products.forEach(p => {
+              const catName = p.category?.name || p.category || 'Other';
+              catMap[catName] = (catMap[catName] || 0) + 1;
+            });
+            const catEntries = Object.entries(catMap).sort((a, b) => b[1] - a[1]);
+            const totalProds = products.length || 1;
+            const PIE_COLORS = ['#6366f1','#10b981','#f59e0b','#ef4444','#8b5cf6','#3b82f6','#ec4899','#14b8a6','#f97316','#84cc16'];
+
+            // Compute SVG pie chart
+            const buildPie = (entries, total) => {
+              let cumAngle = -90; // start from top
+              return entries.map(([ name, count ], i) => {
+                const pct = count / total;
+                const angle = pct * 360;
+                const startRad = (cumAngle * Math.PI) / 180;
+                cumAngle += angle;
+                const endRad = (cumAngle * Math.PI) / 180;
+                const r = 80;
+                const cx = 100; const cy = 100;
+                const x1 = cx + r * Math.cos(startRad);
+                const y1 = cy + r * Math.sin(startRad);
+                const x2 = cx + r * Math.cos(endRad);
+                const y2 = cy + r * Math.sin(endRad);
+                const largeArc = angle > 180 ? 1 : 0;
+                const d = `M${cx},${cy} L${x1},${y1} A${r},${r} 0 ${largeArc},1 ${x2},${y2} Z`;
+                return { d, color: PIE_COLORS[i % PIE_COLORS.length], name, count, pct };
+              });
+            };
+            const slices = catEntries.length > 0 ? buildPie(catEntries, totalProds) : [];
+
+            return (
+              <>
+                <div className="admin-page-header">
+                  <div>
+                    <h1 className="admin-page-title">Advanced Analytics</h1>
+                    <p className="admin-page-subtitle">Real-time rental growth, revenue & category distribution</p>
+                  </div>
+                  <button className="btn btn-secondary btn-sm" onClick={loadAllData}>
+                    <RefreshCw size={14} className={loading ? 'animate-spin' : ''} /> Refresh Data
+                  </button>
                 </div>
-                <div className="chart-container">
-                  <div className="chart-bars" style={{ height: 200 }}>
-                    {[{ l: 'Jan', h: '30%' }, { l: 'Feb', h: '45%' }, { l: 'Mar', h: '60%' }, { l: 'Apr', h: '75%' }, { l: 'May', h: '90%' }, { l: 'Jun', h: '100%' }].map((b, i) => (
-                      <div key={i} className="chart-bar-group">
-                        <div className="chart-bar" style={{ height: b.h }} />
-                        <span className="chart-bar-label">{b.l}</span>
+
+                {/* Key Metrics Row */}
+                <div className="admin-stats-grid" style={{ marginBottom: '1.5rem' }}>
+                  {[
+                    { label: 'Total Rentals', value: analytics.total, color: 'var(--primary)' },
+                    { label: 'Active Now', value: analytics.active, color: 'var(--success)' },
+                    { label: 'Pending Pickup', value: analytics.pending, color: 'var(--warning)' },
+                    { label: 'Completed', value: analytics.returned, color: 'var(--purple)' },
+                  ].map((m, i) => (
+                    <div key={i} className="admin-stat-card">
+                      <div className="admin-stat-info">
+                        <span className="admin-stat-label">{m.label}</span>
+                        <div className="admin-stat-value" style={{ color: m.color }}>{m.value}</div>
                       </div>
-                    ))}
+                    </div>
+                  ))}
+                </div>
+
+                {/* Bar Charts Row */}
+                <div className="revenue-row" style={{ marginBottom: '1.5rem' }}>
+                  {/* Rental Volume Bar Chart */}
+                  <div className="admin-panel">
+                    <div className="admin-panel-header">
+                      <h2 className="admin-panel-title"><TrendingUp size={17} style={{ color: 'var(--primary)' }} /> Monthly Rental Volume (Last 6 Months)</h2>
+                    </div>
+                    <div className="chart-container">
+                      <div className="chart-bars" style={{ height: 180 }}>
+                        {monthLabels.map((k) => {
+                          const { label, count } = monthlyCounts[k];
+                          const heightPct = maxCount > 0 ? Math.max((count / maxCount) * 100, count > 0 ? 6 : 0) : 0;
+                          return (
+                            <div key={k} className="chart-bar-group" title={`${count} rentals`}>
+                              <div className="chart-bar" style={{ height: `${heightPct}%`, position: 'relative' }}>
+                                {count > 0 && <span style={{ position: 'absolute', top: -20, left: '50%', transform: 'translateX(-50%)', fontSize: '0.65rem', color: 'var(--primary)', fontWeight: 700 }}>{count}</span>}
+                              </div>
+                              <span className="chart-bar-label">{label}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Revenue Bar Chart */}
+                  <div className="admin-panel">
+                    <div className="admin-panel-header">
+                      <h2 className="admin-panel-title"><DollarSign size={17} style={{ color: 'var(--success)' }} /> Monthly Revenue (Last 6 Months)</h2>
+                    </div>
+                    <div className="chart-container">
+                      <div className="chart-bars" style={{ height: 180 }}>
+                        {monthLabels.map((k) => {
+                          const { label, revenue } = monthlyCounts[k];
+                          const heightPct = maxRevenue > 0 ? Math.max((revenue / maxRevenue) * 100, revenue > 0 ? 6 : 0) : 0;
+                          return (
+                            <div key={k} className="chart-bar-group" title={fmtCurrency(revenue)}>
+                              <div className="chart-bar" style={{ height: `${heightPct}%`, background: 'linear-gradient(180deg, #10b981, #065f46)', position: 'relative' }}>
+                                {revenue > 0 && <span style={{ position: 'absolute', top: -20, left: '50%', transform: 'translateX(-50%)', fontSize: '0.6rem', color: 'var(--success)', fontWeight: 700, whiteSpace: 'nowrap' }}>{fmtCurrency(revenue)}</span>}
+                              </div>
+                              <span className="chart-bar-label">{label}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
                   </div>
                 </div>
-              </div>
-            </>
-          )}
+
+                {/* Category Distribution Pie Chart */}
+                <div className="admin-panel">
+                  <div className="admin-panel-header">
+                    <h2 className="admin-panel-title"><Tag size={17} style={{ color: 'var(--purple)' }} /> Product Distribution by Category</h2>
+                    <span style={{ fontSize: '0.8rem', color: 'var(--gray-500)' }}>{products.length} total products across {catEntries.length} categories</span>
+                  </div>
+                  <div className="admin-panel-body" style={{ display: 'flex', gap: '2.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                    {catEntries.length === 0 ? (
+                      <p style={{ color: 'var(--gray-500)', fontSize: '0.85rem' }}>No products available for category analysis.</p>
+                    ) : (
+                      <>
+                        {/* SVG Pie Chart */}
+                        <div style={{ flexShrink: 0 }}>
+                          <svg viewBox="0 0 200 200" width="200" height="200" style={{ filter: 'drop-shadow(0 4px 16px rgba(0,0,0,0.15))' }}>
+                            {slices.map((slice, i) => (
+                              <path key={i} d={slice.d} fill={slice.color} stroke="var(--surface)" strokeWidth="2">
+                                <title>{slice.name}: {slice.count} products ({(slice.pct * 100).toFixed(1)}%)</title>
+                              </path>
+                            ))}
+                            {/* Center circle for donut effect */}
+                            <circle cx="100" cy="100" r="45" fill="var(--surface)" />
+                            <text x="100" y="96" textAnchor="middle" style={{ fontSize: '11px', fill: 'var(--gray-400)', fontWeight: 600 }}>Total</text>
+                            <text x="100" y="112" textAnchor="middle" style={{ fontSize: '16px', fill: 'var(--text)', fontWeight: 700 }}>{products.length}</text>
+                          </svg>
+                        </div>
+
+                        {/* Legend */}
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '0.6rem', flex: 1 }}>
+                          {catEntries.map(([name, count], i) => (
+                            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 0.75rem', background: 'var(--gray-50)', borderRadius: '0.5rem', border: `1px solid ${PIE_COLORS[i % PIE_COLORS.length]}30` }}>
+                              <div style={{ width: 12, height: 12, borderRadius: '50%', background: PIE_COLORS[i % PIE_COLORS.length], flexShrink: 0 }} />
+                              <div style={{ flex: 1, minWidth: 0 }}>
+                                <div style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{name}</div>
+                                <div style={{ fontSize: '0.7rem', color: 'var(--gray-500)' }}>{count} products · {((count / totalProds) * 100).toFixed(1)}%</div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </div>
+              </>
+            );
+          })()}
 
           {/* ══════════════════════════════════════════════════
               MODULE 3: CUSTOMER MANAGEMENT
@@ -987,8 +1183,11 @@ const AdminDashboard = () => {
               <div className="admin-page-header">
                 <div>
                   <h1 className="admin-page-title">Payments & Transaction Audit</h1>
-                  <p className="admin-page-subtitle">Monitor financial transactions, refunds & deposit holds</p>
+                  <p className="admin-page-subtitle">Monitor financial transactions, refunds & deposit holds — with invoice download</p>
                 </div>
+                <button className="btn btn-secondary btn-sm" onClick={() => exportToCSV(payments, 'payments_report.csv')}>
+                  <Download size={14} /> Export CSV
+                </button>
               </div>
 
               <div className="admin-panel">
@@ -998,23 +1197,58 @@ const AdminDashboard = () => {
                       <tr>
                         <th>Txn ID</th>
                         <th>Customer</th>
+                        <th>Product</th>
                         <th>Amount</th>
-                        <th>Deposit Refund</th>
-                        <th>Gateway</th>
+                        <th>Type</th>
+                        <th>Method</th>
+                        <th>Date</th>
                         <th>Status</th>
+                        <th className="text-right">Invoice</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {rentals.map((r, i) => (
-                        <tr key={i}>
-                          <td><code>TXN-9800{i + 1}</code></td>
-                          <td>{r.user?.name || 'Customer'}</td>
-                          <td><strong>{fmtCurrency(r.totalCost)}</strong></td>
-                          <td>₹500 (Refunded)</td>
-                          <td>Stripe / Razorpay</td>
-                          <td><span className="badge badge-success">Completed</span></td>
-                        </tr>
-                      ))}
+                      {payments.length === 0 ? (
+                        <tr><td colSpan={9} className="text-center py-6">No payment records found.</td></tr>
+                      ) : (
+                        payments.map((p) => (
+                          <tr key={p._id}>
+                            <td><code>{p.transactionId || p._id?.slice(-8).toUpperCase()}</code></td>
+                            <td>{p.user?.name || '—'}</td>
+                            <td>{p.rental?.product?.title || '—'}</td>
+                            <td><strong>{fmtCurrency(p.amount)}</strong></td>
+                            <td><span className={`badge ${p.type === 'deposit_refund' ? 'badge-warning' : 'badge-active'}`}>{p.type === 'deposit_refund' ? 'Refund' : 'Rental'}</span></td>
+                            <td>{p.paymentMethod || '—'}</td>
+                            <td>{fmtDate(p.createdAt)}</td>
+                            <td><span className="badge badge-success">Completed</span></td>
+                            <td className="text-right">
+                              {p.rental && (
+                                <button
+                                  className="btn btn-secondary btn-xs"
+                                  title="Download Invoice"
+                                  onClick={() => {
+                                    const r = p.rental;
+                                    downloadInvoicePdf({
+                                      orderId: r._id || p._id,
+                                      productTitle: r.product?.title || 'Rental Item',
+                                      customerName: p.user?.name || 'Customer',
+                                      vendorName: 'RentSphere Store',
+                                      startDate: r.rentStartDate,
+                                      endDate: r.rentEndDate,
+                                      pricePerDay: r.product?.pricePerDay || 0,
+                                      totalPaid: p.amount,
+                                      securityDeposit: r.securityDepositPaid || 0,
+                                      paymentMethod: p.paymentMethod,
+                                      transactionId: p.transactionId,
+                                    });
+                                  }}
+                                >
+                                  <Download size={12} /> PDF
+                                </button>
+                              )}
+                            </td>
+                          </tr>
+                        ))
+                      )}
                     </tbody>
                   </table>
                 </div>
@@ -1221,7 +1455,9 @@ const AdminDashboard = () => {
                     </div>
                   </div>
 
-                  <button type="submit" className="btn btn-primary">Save Platform Settings</button>
+                  <button type="submit" className="btn btn-primary" disabled={actionLoading}>
+                    {actionLoading ? 'Saving...' : 'Save Platform Settings'}
+                  </button>
                 </form>
               </div>
             </>

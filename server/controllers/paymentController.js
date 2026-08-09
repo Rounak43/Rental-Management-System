@@ -48,7 +48,10 @@ export const getPayments = async (req, res, next) => {
   try {
     const payments = await Payment.find()
       .populate('user', 'name email')
-      .populate('rental')
+      .populate({
+        path: 'rental',
+        populate: { path: 'product', select: 'title pricePerDay' },
+      })
       .sort({ createdAt: -1 });
 
     res.status(200).json(payments);
