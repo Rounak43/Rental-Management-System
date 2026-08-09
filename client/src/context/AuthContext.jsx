@@ -287,6 +287,9 @@ export const AuthProvider = ({ children }) => {
     setIdToken(null);
     setJwt(null);
     setRole('customer');
+    
+    // Redirect to landing page and force clean reload
+    window.location.href = '/';
   };
 
   // Delete Account

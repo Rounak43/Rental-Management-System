@@ -118,6 +118,10 @@ const ProductDetails = () => {
 
   const handleAddToCart = () => {
     if (!product) return;
+    if (product.availability === false || product.availableQuantity === 0) {
+      toast.error('This product is sold out.');
+      return;
+    }
     addToCart(
       product,
       customConfig || {},
@@ -128,6 +132,10 @@ const ProductDetails = () => {
   };
 
   const handleBookNow = () => {
+    if (product.availability === false || product.availableQuantity === 0) {
+      toast.error('This product is sold out.');
+      return;
+    }
     handleAddToCart();
     navigate('/checkout');
   };
@@ -293,12 +301,20 @@ const ProductDetails = () => {
 
               {/* Action Buttons */}
               <div className="details-actions">
-                <button className="btn btn-secondary" onClick={handleAddToCart}>
-                  <ShoppingBag size={18} /> Add To Cart
-                </button>
-                <button className="btn btn-primary" onClick={handleBookNow}>
-                  <Zap size={18} /> Book Now
-                </button>
+                {product.availability === false || product.availableQuantity === 0 ? (
+                  <button className="btn btn-secondary w-full" disabled style={{ opacity: 0.6, cursor: 'not-allowed', width: '100%' }}>
+                    Sold Out
+                  </button>
+                ) : (
+                  <>
+                    <button className="btn btn-secondary" onClick={handleAddToCart}>
+                      <ShoppingBag size={18} /> Add To Cart
+                    </button>
+                    <button className="btn btn-primary" onClick={handleBookNow}>
+                      <Zap size={18} /> Book Now
+                    </button>
+                  </>
+                )}
               </div>
             </div>
           </div>

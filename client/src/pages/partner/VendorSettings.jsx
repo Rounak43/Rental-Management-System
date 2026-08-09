@@ -27,6 +27,8 @@ import {
   Globe,
   Camera,
   Upload,
+  Eye,
+  EyeOff,
 } from 'lucide-react';
 import '../customer/CustomerSettings.css';
 
@@ -73,6 +75,9 @@ const VendorSettings = () => {
     newPassword: '',
     confirmPassword: '',
   });
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   // Preferences
   const [preferences, setPreferences] = useState({
@@ -164,11 +169,17 @@ const VendorSettings = () => {
         },
       });
 
-      // 3. Update context so sidebar refreshes
-      setUser((prev) => ({
-        ...prev,
-        vendorProfile: { ...prev.vendorProfile, companyName: updated.companyName, logo: updated.logo },
-      }));
+      // 3. Update context and localStorage so sidebar/navbar refreshes permanently
+      const updatedUser = {
+        ...user,
+        vendorProfile: {
+          ...user?.vendorProfile,
+          companyName: updated.companyName,
+          logo: updated.logo,
+        },
+      };
+      setUser(updatedUser);
+      localStorage.setItem('user', JSON.stringify(updatedUser));
 
       toast.success('Company profile saved!');
     } catch (err) {
@@ -183,13 +194,18 @@ const VendorSettings = () => {
     e.preventDefault();
     setLoading(true);
     try {
+      const updatedUser = {
+        ...user,
+        name: ownerData.ownerName,
+      };
+
       // 1. Upload avatar if new file selected
       if (avatarFile) {
         const fd = new FormData();
         fd.append('avatar', avatarFile);
         const res = await uploadVendorAvatar(fd);
         setAvatarPreview(getImageUrl(res.avatar));
-        setUser((prev) => ({ ...prev, profileImage: res.avatar }));
+        updatedUser.profileImage = res.avatar;
         setAvatarFile(null);
       }
 
@@ -199,7 +215,10 @@ const VendorSettings = () => {
         contactPhone: ownerData.phone,
       });
 
-      setUser((prev) => ({ ...prev, name: ownerData.ownerName }));
+      // 3. Update context and localStorage permanently
+      setUser(updatedUser);
+      localStorage.setItem('user', JSON.stringify(updatedUser));
+
       toast.success('Owner profile saved!');
     } catch (err) {
       toast.error(err?.response?.data?.message || 'Failed to save owner profile.');
@@ -451,33 +470,90 @@ const VendorSettings = () => {
 
                     <div className="form-group" style={{ maxWidth: '420px' }}>
                       <label>Current Password</label>
-                      <input
-                        type="password"
-                        value={passwords.currentPassword}
-                        onChange={(e) => setPasswords({ ...passwords, currentPassword: e.target.value })}
-                        required
-                        placeholder="Enter current password"
-                      />
+                      <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                        <input
+                          type={showCurrentPassword ? "text" : "password"}
+                          value={passwords.currentPassword}
+                          onChange={(e) => setPasswords({ ...passwords, currentPassword: e.target.value })}
+                          required
+                          placeholder="Enter current password"
+                          style={{ paddingRight: '40px', width: '100%' }}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                          style={{
+                            position: 'absolute',
+                            right: '12px',
+                            background: 'none',
+                            border: 'none',
+                            cursor: 'pointer',
+                            color: 'var(--text-muted)',
+                            display: 'flex',
+                            alignItems: 'center',
+                          }}
+                        >
+                          {showCurrentPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                        </button>
+                      </div>
                     </div>
                     <div className="form-group" style={{ maxWidth: '420px' }}>
                       <label>New Password</label>
-                      <input
-                        type="password"
-                        value={passwords.newPassword}
-                        onChange={(e) => setPasswords({ ...passwords, newPassword: e.target.value })}
-                        required
-                        placeholder="At least 6 characters"
-                      />
+                      <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                        <input
+                          type={showNewPassword ? "text" : "password"}
+                          value={passwords.newPassword}
+                          onChange={(e) => setPasswords({ ...passwords, newPassword: e.target.value })}
+                          required
+                          placeholder="At least 6 characters"
+                          style={{ paddingRight: '40px', width: '100%' }}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowNewPassword(!showNewPassword)}
+                          style={{
+                            position: 'absolute',
+                            right: '12px',
+                            background: 'none',
+                            border: 'none',
+                            cursor: 'pointer',
+                            color: 'var(--text-muted)',
+                            display: 'flex',
+                            alignItems: 'center',
+                          }}
+                        >
+                          {showNewPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                        </button>
+                      </div>
                     </div>
                     <div className="form-group" style={{ maxWidth: '420px' }}>
                       <label>Confirm New Password</label>
-                      <input
-                        type="password"
-                        value={passwords.confirmPassword}
-                        onChange={(e) => setPasswords({ ...passwords, confirmPassword: e.target.value })}
-                        required
-                        placeholder="Repeat new password"
-                      />
+                      <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                        <input
+                          type={showConfirmPassword ? "text" : "password"}
+                          value={passwords.confirmPassword}
+                          onChange={(e) => setPasswords({ ...passwords, confirmPassword: e.target.value })}
+                          required
+                          placeholder="Repeat new password"
+                          style={{ paddingRight: '40px', width: '100%' }}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                          style={{
+                            position: 'absolute',
+                            right: '12px',
+                            background: 'none',
+                            border: 'none',
+                            cursor: 'pointer',
+                            color: 'var(--text-muted)',
+                            display: 'flex',
+                            alignItems: 'center',
+                          }}
+                        >
+                          {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                        </button>
+                      </div>
                     </div>
 
                     <div>
