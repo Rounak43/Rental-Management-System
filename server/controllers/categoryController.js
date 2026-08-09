@@ -32,15 +32,22 @@ export const getCategories = async (req, res, next) => {
 // @access  Private/Admin
 export const createCategory = async (req, res, next) => {
   try {
-    const { name, slug, description, image, icon } = req.body;
+    const { name, description, image, icon } = req.body;
+    let { slug } = req.body;
 
-    if (!name || !slug) {
-      return res.status(400).json({ message: 'Name and slug are required' });
+    if (!name) {
+      return res.status(400).json({ message: 'Category name is required' });
+    }
+
+    // Auto-generate slug from name if not provided
+    if (!slug) {
+      slug = name.toLowerCase().trim().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
     }
 
     const existing = await Category.findOne({ slug });
     if (existing) {
-      return res.status(400).json({ message: 'Category with this slug already exists' });
+      // Append random suffix to make it unique
+      slug = `${slug}-${Date.now().toString().slice(-4)}`;
     }
 
     const category = await Category.create({ name, slug, description, image, icon });
