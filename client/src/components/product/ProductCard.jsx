@@ -24,6 +24,10 @@ const ProductCard = ({ product, onWishlistToggle }) => {
   const handleAddToCart = (e) => {
     e.preventDefault();
     e.stopPropagation();
+    if (product.availability === false || product.availableQuantity === 0) {
+      toast.error('This product is sold out.');
+      return;
+    }
     addToCart(product, {}, { days: 1 }, 1);
     toast.success(`${product.title || product.name || 'Equipment'} added to rental cart!`);
   };
@@ -57,8 +61,8 @@ const ProductCard = ({ product, onWishlistToggle }) => {
         >
           <Heart size={18} fill={isWishlisted ? '#ef4444' : 'none'} color={isWishlisted ? '#ef4444' : '#fff'} />
         </button>
-        {product.availability === false ? (
-          <span className="availability-badge out">Rented Out</span>
+        {product.availability === false || product.availableQuantity === 0 ? (
+          <span className="availability-badge out">Sold Out</span>
         ) : (
           <span className="availability-badge available">Available Now</span>
         )}
@@ -76,6 +80,11 @@ const ProductCard = ({ product, onWishlistToggle }) => {
           <Link to={`/products/${prodId}`}>{title}</Link>
         </h3>
 
+        <div className="product-card-vendor text-xs text-muted" style={{ margin: '2px 0 8px 0', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+          <span style={{ fontWeight: 600 }}>Vendor: </span>
+          <span>{product.owner?.name || product.vendor?.companyName || product.vendor?.name || 'Verified Partner'}</span>
+        </div>
+
         <div className="product-card-deposit flex items-center gap-1">
           <ShieldCheck size={14} color="#10b981" />
           <span>Deposit: ₹{deposit}</span>
@@ -92,9 +101,15 @@ const ProductCard = ({ product, onWishlistToggle }) => {
             <button className="btn btn-secondary btn-sm" onClick={handleAddToCart} title="Add to Cart">
               <ShoppingBag size={14} /> Add
             </button>
-            <Link to={`/products/${prodId}`} className="btn btn-primary btn-sm">
-              Rent <ArrowRight size={14} />
-            </Link>
+            {product.availability === false || product.availableQuantity === 0 ? (
+              <button className="btn btn-primary btn-sm" disabled style={{ opacity: 0.6, cursor: 'not-allowed' }}>
+                Sold Out
+              </button>
+            ) : (
+              <Link to={`/products/${prodId}`} className="btn btn-primary btn-sm">
+                Rent <ArrowRight size={14} />
+              </Link>
+            )}
           </div>
         </div>
       </div>

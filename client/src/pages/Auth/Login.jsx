@@ -2,8 +2,7 @@ import React, { useState, useContext } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { AuthContext } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
-import { Mail, Lock, LogIn, ArrowRight } from 'lucide-react';
-import Navbar from '../../components/layout/Navbar';
+import { Mail, Lock, LogIn, ArrowRight, Eye, EyeOff } from 'lucide-react';
 import Footer from '../../components/layout/Footer';
 import './Login.css';
 
@@ -14,8 +13,9 @@ const Login = () => {
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+  const [loading, setLoading] = useState(false);
 
 
   const handleSubmit = async (e) => {
@@ -77,7 +77,6 @@ const Login = () => {
 
   return (
     <div className="app-container">
-      <Navbar />
       <main className="auth-page-container">
         <div className="auth-card glass-card">
           <div className="auth-header text-center">
@@ -105,22 +104,40 @@ const Login = () => {
               </div>
             </div>
 
-            <div className="form-group">
+             <div className="form-group">
               <div className="label-with-link">
                 <label>Password</label>
                 <Link to="/forgot-password" className="forgot-link">
                   Forgot Password?
                 </Link>
               </div>
-              <div className="input-icon-wrapper">
+              <div className="input-icon-wrapper" style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
                 <Lock className="field-icon" size={18} />
                 <input
-                  type="password"
+                  type={showPassword ? "text" : "password"}
                   placeholder="••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
+                  style={{ paddingRight: '40px', width: '100%' }}
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  style={{
+                    position: 'absolute',
+                    right: '12px',
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    color: 'var(--text-muted)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    zIndex: 10,
+                  }}
+                >
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
               </div>
             </div>
 

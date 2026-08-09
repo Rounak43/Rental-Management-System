@@ -3,6 +3,7 @@ import { useLocation, Link } from 'react-router-dom';
 import Navbar from '../../components/layout/Navbar';
 import Footer from '../../components/layout/Footer';
 import { CheckCircle2, Download, ShoppingBag, Package, Calendar, FileText } from 'lucide-react';
+import { downloadInvoicePdf } from '../../utils/invoicePdf';
 import './PaymentSuccess.css';
 
 const PaymentSuccess = () => {
@@ -16,24 +17,17 @@ const PaymentSuccess = () => {
   const totalPaid = state.totalPaid || 490;
 
   const handleDownloadInvoice = () => {
-    const invoiceContent = `===========================================
-RENTSPHERE OFFICIAL INVOICE
-Invoice Number: ${invoiceNumber}
-Order ID: ${orderId}
-Rental Agreement ID: ${rentalId}
-Date: ${new Date().toLocaleDateString()}
-Total Paid: ₹${totalPaid}
-Estimated Delivery: ${estimatedDelivery}
-===========================================
-Thank you for renting with RentSphere!`;
-
-    const element = document.createElement('a');
-    const file = new Blob([invoiceContent], { type: 'text/plain' });
-    element.href = URL.createObjectURL(file);
-    element.download = `${invoiceNumber}.txt`;
-    document.body.appendChild(element);
-    element.click();
-    document.body.removeChild(element);
+    downloadInvoicePdf({
+      invoiceNumber,
+      orderId,
+      rentalId,
+      productTitle: state.productTitle || 'Equipment Rental Leased Item',
+      totalPaid: Number(totalPaid),
+      securityDeposit: Number(state.securityDeposit || Math.round(totalPaid * 0.3)),
+      startDate: state.startDate || new Date().toLocaleDateString(),
+      endDate: state.endDate || new Date(Date.now() + 86400000 * 3).toLocaleDateString(),
+      estimatedDelivery,
+    });
   };
 
   return (

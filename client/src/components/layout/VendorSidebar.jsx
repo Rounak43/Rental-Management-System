@@ -118,9 +118,6 @@ const VendorSidebar = () => {
       </nav>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', borderTop: '1px solid var(--border-color)', paddingTop: '16px' }}>
-        <NavLink to="/" className="sidebar-link" style={linkStyle}>
-          <ShoppingBag size={18} /><span>Marketplace</span>
-        </NavLink>
         <button
           onClick={handleLogout}
           className="sidebar-link"

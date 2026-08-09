@@ -19,7 +19,9 @@ import {
   Sun,
   Globe,
   Lock,
-  Camera
+  Camera,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 import './CustomerSettings.css';
 
@@ -42,13 +44,14 @@ const CustomerSettings = () => {
     zipCode: user?.address?.zipCode || '',
     country: user?.address?.country || 'USA',
   });
-
-  // Password Form state
   const [passwords, setPasswords] = useState({
     currentPassword: '',
     newPassword: '',
     confirmPassword: '',
   });
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   // Notifications state
   const [notifications, setNotifications] = useState({
@@ -287,35 +290,92 @@ const CustomerSettings = () => {
 
                   <div className="form-group max-w-md">
                     <label>Current Password</label>
-                    <input
-                      type="password"
-                      value={passwords.currentPassword}
-                      onChange={(e) => setPasswords({ ...passwords, currentPassword: e.target.value })}
-                      placeholder="••••••••"
-                      required
-                    />
+                    <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                      <input
+                        type={showCurrentPassword ? "text" : "password"}
+                        value={passwords.currentPassword}
+                        onChange={(e) => setPasswords({ ...passwords, currentPassword: e.target.value })}
+                        placeholder="••••••••"
+                        required
+                        style={{ paddingRight: '40px', width: '100%' }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                        style={{
+                          position: 'absolute',
+                          right: '12px',
+                          background: 'none',
+                          border: 'none',
+                          cursor: 'pointer',
+                          color: 'var(--text-muted)',
+                          display: 'flex',
+                          alignItems: 'center',
+                        }}
+                      >
+                        {showCurrentPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                      </button>
+                    </div>
                   </div>
 
                   <div className="form-group max-w-md">
                     <label>New Password</label>
-                    <input
-                      type="password"
-                      value={passwords.newPassword}
-                      onChange={(e) => setPasswords({ ...passwords, newPassword: e.target.value })}
-                      placeholder="••••••••"
-                      required
-                    />
+                    <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                      <input
+                        type={showNewPassword ? "text" : "password"}
+                        value={passwords.newPassword}
+                        onChange={(e) => setPasswords({ ...passwords, newPassword: e.target.value })}
+                        placeholder="••••••••"
+                        required
+                        style={{ paddingRight: '40px', width: '100%' }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowNewPassword(!showNewPassword)}
+                        style={{
+                          position: 'absolute',
+                          right: '12px',
+                          background: 'none',
+                          border: 'none',
+                          cursor: 'pointer',
+                          color: 'var(--text-muted)',
+                          display: 'flex',
+                          alignItems: 'center',
+                        }}
+                      >
+                        {showNewPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                      </button>
+                    </div>
                   </div>
 
                   <div className="form-group max-w-md">
                     <label>Confirm New Password</label>
-                    <input
-                      type="password"
-                      value={passwords.confirmPassword}
-                      onChange={(e) => setPasswords({ ...passwords, confirmPassword: e.target.value })}
-                      placeholder="••••••••"
-                      required
-                    />
+                    <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                      <input
+                        type={showConfirmPassword ? "text" : "password"}
+                        value={passwords.confirmPassword}
+                        onChange={(e) => setPasswords({ ...passwords, confirmPassword: e.target.value })}
+                        placeholder="••••••••"
+                        required
+                        style={{ paddingRight: '40px', width: '100%' }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                        style={{
+                          position: 'absolute',
+                          right: '12px',
+                          background: 'none',
+                          border: 'none',
+                          cursor: 'pointer',
+                          color: 'var(--text-muted)',
+                          display: 'flex',
+                          alignItems: 'center',
+                        }}
+                      >
+                        {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                      </button>
+                    </div>
                   </div>
 
                   <button type="submit" className="btn btn-primary mt-4" disabled={loading}>

@@ -4,7 +4,7 @@ import { fetchProducts } from '../../services/productService';
 import ProductCard from '../../components/product/ProductCard';
 import Navbar from '../../components/layout/Navbar';
 import Footer from '../../components/layout/Footer';
-import { Search, Filter, SlidersHorizontal, ArrowUpDown, RefreshCw, X } from 'lucide-react';
+import { Search, Filter, SlidersHorizontal, ArrowUpDown, RefreshCw, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import './ProductBrowse.css';
 
 const MOCK_FALLBACK_PRODUCTS = [
@@ -165,14 +165,21 @@ const ProductBrowse = () => {
   const [availabilityOnly, setAvailabilityOnly] = useState(false);
   const [maxPrice, setMaxPrice] = useState(5000);
   const [sortBy, setSortBy] = useState('newest');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
 
-  // Debounced search handler
+  // Reset page to 1 on filter changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, categoryFilter, availabilityOnly, maxPrice, sortBy]);
+
+  // Debounced search and page change handler
   useEffect(() => {
     const timer = setTimeout(() => {
       loadProducts();
-    }, 300);
+    }, 150);
     return () => clearTimeout(timer);
-  }, [searchQuery, categoryFilter, availabilityOnly, maxPrice, sortBy]);
+  }, [currentPage, searchQuery, categoryFilter, availabilityOnly, maxPrice, sortBy]);
 
   const loadProducts = async () => {
     setLoading(true);
@@ -182,10 +189,19 @@ const ProductBrowse = () => {
         category: categoryFilter,
         availability: availabilityOnly ? 'true' : undefined,
         maxPrice,
+        sortBy,
+        page: currentPage,
+        limit: 9,
       });
 
-      if (data?.products && data.products.length > 0) {
-        setProducts(data.products);
+      if (data?.products) {
+        // Apply sorting locally as well in case of state updates
+        let sorted = [...data.products];
+        if (sortBy === 'price-low') sorted.sort((a, b) => a.pricePerDay - b.pricePerDay);
+        if (sortBy === 'price-high') sorted.sort((a, b) => b.pricePerDay - a.pricePerDay);
+        if (sortBy === 'popular') sorted.sort((a, b) => (b.rating || 0) - (a.rating || 0));
+        setProducts(sorted);
+        setTotalPages(data.totalPages || 1);
       } else {
         // Fallback filter over mock catalog
         let filtered = MOCK_FALLBACK_PRODUCTS.filter((p) => {
@@ -204,11 +220,16 @@ const ProductBrowse = () => {
         if (sortBy === 'price-high') filtered.sort((a, b) => b.pricePerDay - a.pricePerDay);
         if (sortBy === 'popular') filtered.sort((a, b) => b.reviewsCount - a.reviewsCount);
 
-        setProducts(filtered);
+        const startIndex = (currentPage - 1) * 9;
+        const paginatedMock = filtered.slice(startIndex, startIndex + 9);
+        setProducts(paginatedMock);
+        setTotalPages(Math.ceil(filtered.length / 9) || 1);
       }
     } catch (err) {
       console.warn('API fetch warning, using client fallback:', err);
-      setProducts(MOCK_FALLBACK_PRODUCTS);
+      const startIndex = (currentPage - 1) * 9;
+      setProducts(MOCK_FALLBACK_PRODUCTS.slice(startIndex, startIndex + 9));
+      setTotalPages(Math.ceil(MOCK_FALLBACK_PRODUCTS.length / 9) || 1);
     } finally {
       setLoading(false);
     }
@@ -246,13 +267,14 @@ const ProductBrowse = () => {
                 <label>Category</label>
                 <select value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)}>
                   <option value="">All Categories</option>
-                  <option value="Vehicles">Vehicles (Cars & Bikes)</option>
-                  <option value="Gym">Gym & Fitness</option>
-                  <option value="Gaming">Gaming & Consoles</option>
-                  <option value="Clothes">Clothes & Fashion</option>
-                  <option value="Electronics">Electronics & Tech</option>
-                  <option value="Furniture">Furniture & Home</option>
-                  <option value="Tools">Tools & Machinery</option>
+                  <option value="electronics">Electronics & Tech</option>
+                  <option value="tools-hardware">Tools & Machinery</option>
+                  <option value="gaming">Gaming & Consoles</option>
+                  <option value="vehicles">Vehicles (Cars & Bikes)</option>
+                  <option value="fitness-gym">Gym & Fitness</option>
+                  <option value="home-furniture">Furniture & Home</option>
+                  <option value="apparel-clothing">Clothes & Fashion</option>
+                  <option value="event-party">Event & Party Gear</option>
                 </select>
               </div>
 
@@ -335,11 +357,57 @@ const ProductBrowse = () => {
                   </button>
                 </div>
               ) : (
-                <div className="grid-3">
-                  {products.map((product) => (
-                    <ProductCard key={product._id} product={product} />
-                  ))}
-                </div>
+                <>
+                  <div className="grid-3">
+                    {products.map((product) => (
+                      <ProductCard key={product._id} product={product} />
+                    ))}
+                  </div>
+
+                  {/* Left & Right Pagination Controls */}
+                  {totalPages > 1 && (
+                    <div className="pagination-wrapper" style={{
+                      display: 'flex',
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                      gap: '16px',
+                      marginTop: '32px',
+                      padding: '16px 0',
+                    }}>
+                      <button
+                        className="btn btn-secondary btn-sm"
+                        onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+                        disabled={currentPage === 1}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
+                          opacity: currentPage === 1 ? 0.5 : 1,
+                        }}
+                      >
+                        <ChevronLeft size={16} /> Prev
+                      </button>
+                      <span className="text-sm font-semibold" style={{ color: 'var(--text-muted)' }}>
+                        Page {currentPage} of {totalPages}
+                      </span>
+                      <button
+                        className="btn btn-secondary btn-sm"
+                        onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
+                        disabled={currentPage === totalPages}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          cursor: currentPage === totalPages ? 'not-allowed' : 'pointer',
+                          opacity: currentPage === totalPages ? 0.5 : 1,
+                        }}
+                      >
+                        Next <ChevronRight size={16} />
+                      </button>
+                    </div>
+                  )}
+                </>
               )}
             </main>
           </div>

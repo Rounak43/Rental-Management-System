@@ -5,6 +5,7 @@ import Navbar from '../../components/layout/Navbar';
 import Footer from '../../components/layout/Footer';
 import { useToast } from '../../context/ToastContext';
 import { Package, Calendar, RefreshCcw, Download, RotateCcw, Truck, CheckCircle2, AlertCircle } from 'lucide-react';
+import { downloadInvoicePdf } from '../../utils/invoicePdf';
 import './Orders.css';
 
 const MOCK_ORDERS = [
@@ -83,14 +84,17 @@ const Orders = () => {
   };
 
   const handleDownloadInvoice = (order) => {
-    const text = `RENTALHUB INVOICE\nOrder ID: ${order._id}\nProduct: ${order.product?.title || 'Equipment'}\nTotal Paid: $${order.totalAmount}\nDeposit: $${order.securityDeposit}\nStatus: ${order.status}`;
-    const element = document.createElement('a');
-    const file = new Blob([text], { type: 'text/plain' });
-    element.href = URL.createObjectURL(file);
-    element.download = `Invoice_${order._id}.txt`;
-    document.body.appendChild(element);
-    element.click();
-    document.body.removeChild(element);
+    downloadInvoicePdf({
+      invoiceNumber: `INV-${order._id.slice(-6).toUpperCase()}`,
+      orderId: order._id,
+      rentalId: order._id, // orders use rentalId as _id
+      productTitle: order.product?.title || 'Leased Equipment Item',
+      totalPaid: Number(order.totalAmount || 0),
+      securityDeposit: Number(order.securityDeposit || 0),
+      startDate: new Date(order.startDate).toLocaleDateString(),
+      endDate: new Date(order.endDate).toLocaleDateString(),
+      estimatedDelivery: 'Standard Protocol',
+    });
   };
 
   return (

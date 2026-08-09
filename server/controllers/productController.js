@@ -1,6 +1,7 @@
 import mongoose from 'mongoose';
 import Product from '../models/Product.js';
 import Category from '../models/Category.js';
+import VendorProfile from '../models/VendorProfile.js';
 
 // Helper to resolve Category ID from ID, Name, or Slug
 const resolveCategoryId = async (categoryInput) => {
@@ -32,6 +33,22 @@ const resolveCategoryId = async (categoryInput) => {
   return category._id;
 };
 
+// Helper to find Category ID from ID, Name, or Slug without creating it
+const findCategoryId = async (categoryInput) => {
+  if (!categoryInput) return null;
+  if (mongoose.Types.ObjectId.isValid(categoryInput)) {
+    return categoryInput;
+  }
+  let category = await Category.findOne({
+    $or: [
+      { name: { $regex: new RegExp(`^${categoryInput}$`, 'i') } },
+      { slug: categoryInput.toLowerCase() },
+      { name: { $regex: new RegExp(categoryInput.split(' ')[0], 'i') } }
+    ]
+  });
+  return category ? category._id : null;
+};
+
 // @desc    Get all published products with filters
 // @route   GET /api/products
 // @access  Public
@@ -47,11 +64,21 @@ export const getProducts = async (req, res, next) => {
       location,
       page = 1,
       limit = 12,
+      sortBy,
     } = req.query;
 
     const filter = { isPublished: true };
 
-    if (category) filter.category = category;
+    if (category) {
+      const categoryId = await findCategoryId(category);
+      if (categoryId) {
+        filter.category = categoryId;
+      } else {
+        // If category is provided but not found, force empty result by providing an impossible ID
+        filter.category = new mongoose.Types.ObjectId();
+      }
+    }
+
     if (availability === 'true') filter.availability = true;
     if (condition) filter.condition = condition;
     if (location) filter.location = { $regex: location, $options: 'i' };
@@ -68,17 +95,46 @@ export const getProducts = async (req, res, next) => {
       ];
     }
 
+    // Determine Sort Options
+    let sortOption = { createdAt: -1 };
+    if (sortBy === 'price-low') {
+      sortOption = { pricePerDay: 1 };
+    } else if (sortBy === 'price-high') {
+      sortOption = { pricePerDay: -1 };
+    } else if (sortBy === 'popular') {
+      sortOption = { rating: -1, reviewCount: -1 };
+    } else if (sortBy === 'newest') {
+      sortOption = { createdAt: -1 };
+    }
+
     const skip = (Number(page) - 1) * Number(limit);
     const total = await Product.countDocuments(filter);
     const products = await Product.find(filter)
       .populate('category', 'name slug')
       .populate('owner', 'name')
-      .sort({ createdAt: -1 })
+      .sort(sortOption)
       .skip(skip)
       .limit(Number(limit));
 
+    // Fetch vendor profiles for all product owners to attach company names
+    const ownerIds = products.map((p) => p.owner?._id).filter(Boolean);
+    const profiles = await VendorProfile.find({ user: { $in: ownerIds } });
+    const profileMap = {};
+    profiles.forEach((prof) => {
+      profileMap[prof.user.toString()] = prof.companyName;
+    });
+
+    const productsWithCompany = products.map((p) => {
+      const pObj = p.toObject();
+      if (pObj.owner) {
+        const companyName = profileMap[pObj.owner._id.toString()];
+        pObj.owner.name = companyName || pObj.owner.name; // replace user name with company name
+      }
+      return pObj;
+    });
+
     res.status(200).json({
-      products,
+      products: productsWithCompany,
       currentPage: Number(page),
       totalPages: Math.ceil(total / Number(limit)),
       total,
@@ -100,7 +156,25 @@ export const getProductById = async (req, res, next) => {
     if (!product) {
       return res.status(404).json({ message: 'Product not found' });
     }
-    res.status(200).json(product);
+
+    const pObj = product.toObject();
+    const vendorProfile = await VendorProfile.findOne({ user: product.owner?._id });
+    if (vendorProfile) {
+      pObj.vendor = {
+        companyName: vendorProfile.companyName,
+        ownerName: vendorProfile.ownerName,
+        logo: vendorProfile.logo,
+        contactPhone: vendorProfile.contactPhone,
+        website: vendorProfile.website,
+      };
+    } else {
+      pObj.vendor = {
+        companyName: product.owner?.name || 'Verified Vendor',
+        ownerName: product.owner?.name || 'Owner',
+      };
+    }
+
+    res.status(200).json(pObj);
   } catch (error) {
     next(error);
   }
