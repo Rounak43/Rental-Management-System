@@ -8,6 +8,7 @@ import { getStoredWishlist } from '../../services/wishlistService';
 import ProductCard from '../../components/product/ProductCard';
 import Navbar from '../../components/layout/Navbar';
 import Footer from '../../components/layout/Footer';
+import { downloadInvoicePdf } from '../../utils/invoicePdf';
 import {
   Package,
   Clock,
@@ -21,7 +22,8 @@ import {
   CheckCircle2,
   FileText,
   ArrowRight,
-  TrendingUp
+  TrendingUp,
+  Download
 } from 'lucide-react';
 import './CustomerDashboard.css';
 
@@ -65,15 +67,27 @@ const CustomerDashboard = () => {
           _id: r._id,
           product: {
             title: r.product?.title || 'Rental Equipment',
-            image: r.product?.images?.[0] || 'https://images.unsplash.com/photo-1516035069371-29a1b244cc32?w=300',
+            image: r.product?.images?.[0] || r.product?.image || 'https://images.unsplash.com/photo-1516035069371-29a1b244cc32?w=300',
             pricePerDay: r.product?.pricePerDay || 500,
+            lateFeePerHour: r.product?.lateFeePerHour || 50,
+            gracePeriod: r.product?.gracePeriod || 2,
           },
           startDate: r.rentStartDate ? new Date(r.rentStartDate).toISOString().split('T')[0] : '2026-08-05',
           endDate: r.rentEndDate ? new Date(r.rentEndDate).toISOString().split('T')[0] : '2026-08-12',
+          rentStartDate: r.rentStartDate,
+          rentEndDate: r.rentEndDate,
           totalAmount: r.totalCost || 1200,
           deposit: r.securityDepositPaid || 500,
-          status: r.status === 'returned' ? 'Returned' : 'Active',
-          returnStatus: r.returnStatus || (r.status === 'returned' ? 'Deposit Refunded' : 'Lease Active'),
+          status: r.status,
+          pickupStatus: r.pickupStatus,
+          returnStatus: r.returnStatus,
+          lateFee: r.lateFee || 0,
+          lateHours: r.lateHours || 0,
+          damageCharges: r.damageCharges || 0,
+          refundAmount: r.refundAmount || 0,
+          pickupOTP: r.pickupOTP,
+          pickupQRCode: r.pickupQRCode,
+          invoiceId: r.invoiceId,
         }));
         setRentals(formatted);
       } else {
@@ -316,24 +330,44 @@ const CustomerDashboard = () => {
                   ) : (
                     <div className="active-rentals-list flex-col gap-3">
                       {activeRentals.map((rental) => (
-                        <div key={rental._id} className="active-rental-item">
-                          <img src={rental.product?.image} alt={rental.product?.title} />
+                        <div key={rental._id} className="active-rental-item flex-col md:flex-row gap-3">
+                          <img src={rental.product?.image} alt={rental.product?.title} style={{ width: '70px', height: '70px', borderRadius: '10px', objectFit: 'cover' }} />
                           <div className="flex-1">
                             <h4>{rental.product?.title}</h4>
                             <p className="text-xs text-muted mt-1">
                               Rental Period: <strong>{rental.startDate}</strong> to <strong>{rental.endDate}</strong>
                             </p>
-                            <div className="flex gap-2 mt-2 items-center">
-                              <span className="badge badge-warning">{rental.returnStatus}</span>
-                              <span className="badge badge-info">₹{rental.totalAmount} Paid</span>
+                            <div className="flex gap-2 mt-2 items-center flex-wrap">
+                              <span className={`badge ${rental.status === 'overdue' ? 'badge-danger' : 'badge-warning'}`}>
+                                {rental.status === 'overdue' ? 'Overdue Return' : (rental.pickupStatus === 'picked_up' ? 'Picked Up / Active' : 'Pickup Pending')}
+                              </span>
+                              <span className="badge badge-info">₹{rental.totalAmount} Rent Paid</span>
+                              <span className="badge badge-secondary">₹{rental.deposit} Deposit Held</span>
+                              {rental.pickupOTP && (
+                                <span className="badge badge-success" style={{ fontFamily: 'monospace' }}>OTP: {rental.pickupOTP}</span>
+                              )}
                             </div>
                           </div>
-                          <div className="flex gap-2">
-                            <button className="btn btn-secondary btn-sm" onClick={() => setExtendModalItem(rental)}>
-                              <Calendar size={14} /> Extend
+                          <div className="flex gap-2 items-center">
+                            <button className="btn btn-secondary btn-sm" onClick={() => setReturnModalItem(rental)}>
+                              <RotateCcw size={14} /> Schedule Return
                             </button>
-                            <button className="btn btn-primary btn-sm" onClick={() => setReturnModalItem(rental)}>
-                              <RotateCcw size={14} /> Return
+                            <button
+                              className="btn btn-secondary btn-sm"
+                              title="Download Invoice"
+                              onClick={() => downloadInvoicePdf({
+                                orderId: rental.invoiceId || rental._id,
+                                productTitle: rental.product?.title || 'Equipment Item',
+                                customerName: user?.name || 'Customer',
+                                vendorName: 'RentSphere Store',
+                                startDate: rental.rentStartDate || rental.startDate,
+                                endDate: rental.rentEndDate || rental.endDate,
+                                pricePerDay: rental.product?.pricePerDay || 0,
+                                totalPaid: rental.totalAmount + rental.deposit,
+                                securityDeposit: rental.deposit,
+                              })}
+                            >
+                              <Download size={14} /> PDF
                             </button>
                           </div>
                         </div>
@@ -347,7 +381,7 @@ const CustomerDashboard = () => {
               {activeTab === 'history' && (
                 <div className="glass-card">
                   <div className="dash-card-header mb-4">
-                    <h3><FileText size={18} className="text-primary" /> Completed Rentals</h3>
+                    <h3><FileText size={18} className="text-primary" /> Completed Rentals & Financial Settlement</h3>
                   </div>
 
                   {pastRentals.length === 0 ? (
@@ -355,13 +389,42 @@ const CustomerDashboard = () => {
                   ) : (
                     <div className="active-rentals-list flex-col gap-3">
                       {pastRentals.map((rental) => (
-                        <div key={rental._id} className="active-rental-item">
-                          <img src={rental.product?.image} alt={rental.product?.title} />
+                        <div key={rental._id} className="active-rental-item flex-col md:flex-row gap-3">
+                          <img src={rental.product?.image} alt={rental.product?.title} style={{ width: '70px', height: '70px', borderRadius: '10px', objectFit: 'cover' }} />
                           <div className="flex-1">
                             <h4>{rental.product?.title}</h4>
-                            <p className="text-xs text-muted mt-1">Returned on: {rental.endDate}</p>
+                            <p className="text-xs text-muted mt-1">
+                              Rental Period: {rental.startDate} to {rental.endDate}
+                            </p>
+                            <div className="flex gap-2 mt-2 items-center flex-wrap">
+                              <span className="badge badge-success">Returned & Settled</span>
+                              {rental.lateFee > 0 && <span className="badge badge-danger">Late Fee: ₹{rental.lateFee}</span>}
+                              {rental.damageCharges > 0 && <span className="badge badge-danger">Damage Fee: ₹{rental.damageCharges}</span>}
+                              {rental.refundAmount > 0 && <span className="badge badge-success">Refunded: ₹{rental.refundAmount}</span>}
+                            </div>
                           </div>
-                          <span className="badge badge-success">Returned & Refunded</span>
+                          <div>
+                            <button
+                              className="btn btn-secondary btn-sm"
+                              title="Download Final Settlement Invoice"
+                              onClick={() => downloadInvoicePdf({
+                                orderId: rental.invoiceId || rental._id,
+                                productTitle: rental.product?.title || 'Equipment Item',
+                                customerName: user?.name || 'Customer',
+                                vendorName: 'RentSphere Store',
+                                startDate: rental.rentStartDate || rental.startDate,
+                                endDate: rental.rentEndDate || rental.endDate,
+                                pricePerDay: rental.product?.pricePerDay || 0,
+                                totalPaid: rental.totalAmount + rental.lateFee + rental.damageCharges,
+                                securityDeposit: rental.deposit,
+                                lateFee: rental.lateFee,
+                                damageCharges: rental.damageCharges,
+                                refundAmount: rental.refundAmount,
+                              })}
+                            >
+                              <Download size={14} /> Settlement Invoice
+                            </button>
+                          </div>
                         </div>
                       ))}
                     </div>

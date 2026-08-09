@@ -90,6 +90,26 @@ const productSchema = new mongoose.Schema(
       default: 0,
       min: [0, 'Late fee cannot be negative'],
     },
+    lateFeePerHour: {
+      type: Number,
+      default: 50,
+      min: [0, 'Late fee per hour cannot be negative'],
+    },
+    gracePeriod: {
+      type: Number,
+      default: 2,
+      min: [0, 'Grace period cannot be negative'],
+    },
+    maximumLateFee: {
+      type: Number,
+      default: 500,
+      min: [0, 'Maximum late fee cannot be negative'],
+    },
+    currentlyRented: {
+      type: Number,
+      default: 0,
+      min: [0, 'Currently rented quantity cannot be negative'],
+    },
     availability: {
       type: Boolean,
       default: true,
@@ -113,6 +133,16 @@ const productSchema = new mongoose.Schema(
       type: String,
       enum: ['available', 'rented', 'maintenance', 'retired'],
       default: 'available',
+    },
+    productStatus: {
+      type: String,
+      enum: ['available', 'rented', 'maintenance', 'retired'],
+      default: 'available',
+    },
+    repairStatus: {
+      type: String,
+      enum: ['none', 'pending', 'in_progress', 'completed'],
+      default: 'none',
     },
     isPublished: {
       type: Boolean,

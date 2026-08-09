@@ -1,6 +1,7 @@
 import express from 'express';
 import {
   getVendorDashboard,
+  getVendorAnalytics,
   getVendorProfile,
   updateVendorProfile,
   uploadVendorLogo,
@@ -12,8 +13,9 @@ import { avatarUpload } from '../middleware/uploadMiddleware.js';
 
 const router = express.Router();
 
-// Vendor dashboard stats
+// Vendor dashboard stats & analytics
 router.get('/dashboard', protect, vendor, getVendorDashboard);
+router.get('/analytics', protect, vendor, getVendorAnalytics);
 
 // Vendor profile management
 router.get('/profile', protect, vendor, getVendorProfile);

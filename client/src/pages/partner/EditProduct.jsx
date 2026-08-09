@@ -27,7 +27,9 @@ const EditProduct = () => {
     description: '',
     pricePerDay: '',
     securityDeposit: '',
-    lateFee: '',
+    lateFeePerHour: '50',
+    gracePeriod: '2',
+    maximumLateFee: '500',
     availableQuantity: '1',
     condition: 'new',
     location: '',
@@ -66,7 +68,9 @@ const EditProduct = () => {
           description: data.description || '',
           pricePerDay: String(data.pricePerDay || data.price || ''),
           securityDeposit: String(data.securityDeposit || data.deposit || ''),
-          lateFee: String(data.lateFee || 10),
+          lateFeePerHour: String(data.lateFeePerHour || data.lateFee || 50),
+          gracePeriod: String(data.gracePeriod !== undefined ? data.gracePeriod : 2),
+          maximumLateFee: String(data.maximumLateFee !== undefined ? data.maximumLateFee : 500),
           availableQuantity: String(data.availableQuantity || data.quantity || 1),
           condition: data.condition || 'new',
           location: data.location || '',
@@ -325,14 +329,41 @@ const EditProduct = () => {
                 </div>
 
                 <div className="form-group">
-                  <label>Late Fee Charge (₹/Day)</label>
+                  <label>Late Fee Charge (₹/Hour) *</label>
                   <input 
                     type="number" 
-                    name="lateFee" 
-                    placeholder="₹100" 
+                    name="lateFeePerHour" 
+                    placeholder="₹50" 
                     min="0"
-                    value={formData.lateFee} 
+                    value={formData.lateFeePerHour} 
                     onChange={handleInputChange} 
+                    required
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label>Grace Period (Hours) *</label>
+                  <input 
+                    type="number" 
+                    name="gracePeriod" 
+                    placeholder="2" 
+                    min="0"
+                    value={formData.gracePeriod} 
+                    onChange={handleInputChange} 
+                    required
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label>Maximum Late Fee Penalty (₹) *</label>
+                  <input 
+                    type="number" 
+                    name="maximumLateFee" 
+                    placeholder="₹500" 
+                    min="0"
+                    value={formData.maximumLateFee} 
+                    onChange={handleInputChange} 
+                    required
                   />
                 </div>
 

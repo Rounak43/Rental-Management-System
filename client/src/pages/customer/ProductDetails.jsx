@@ -244,12 +244,23 @@ const ProductDetails = () => {
                 <div className="specs-box">
                   <h4>Specifications</h4>
                   <div className="specs-table">
-                    {product.specifications.map((spec, idx) => (
-                      <div key={idx} className="spec-row">
-                        <span className="spec-key">{spec.key}</span>
-                        <span className="spec-val">{spec.value}</span>
-                      </div>
-                    ))}
+                    {Array.isArray(product.specifications) ? (
+                      product.specifications.map((spec, idx) => (
+                        <div key={idx} className="spec-row">
+                          <span className="spec-key">{spec.key || spec.name}</span>
+                          <span className="spec-val">{spec.value || spec.val}</span>
+                        </div>
+                      ))
+                    ) : typeof product.specifications === 'object' ? (
+                      Object.entries(product.specifications).map(([key, value], idx) => (
+                        <div key={idx} className="spec-row">
+                          <span className="spec-key" style={{ textTransform: 'capitalize' }}>
+                            {key.replace(/([A-Z])/g, ' $1')}
+                          </span>
+                          <span className="spec-val">{String(value)}</span>
+                        </div>
+                      ))
+                    ) : null}
                   </div>
                 </div>
               )}

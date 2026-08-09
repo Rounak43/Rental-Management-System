@@ -239,9 +239,15 @@ export const createProduct = async (req, res, next) => {
       owner: req.user._id,
       quantity: qty,
       availableQuantity: req.body.availableQuantity !== undefined ? Number(req.body.availableQuantity) : qty,
+      currentlyRented: req.body.currentlyRented !== undefined ? Number(req.body.currentlyRented) : 0,
       pricePerDay: Number(pricePerDay),
       securityDeposit: Number(securityDeposit || 0),
-      lateFee: Number(lateFee || 0),
+      lateFee: Number(req.body.lateFee || req.body.lateFeePerHour || 50),
+      lateFeePerHour: Number(req.body.lateFeePerHour || req.body.lateFee || 50),
+      gracePeriod: Number(req.body.gracePeriod !== undefined ? req.body.gracePeriod : 2),
+      maximumLateFee: Number(req.body.maximumLateFee !== undefined ? req.body.maximumLateFee : 500),
+      productStatus: req.body.productStatus || 'available',
+      status: req.body.status || req.body.productStatus || 'available',
     };
 
     const product = await Product.create(productData);

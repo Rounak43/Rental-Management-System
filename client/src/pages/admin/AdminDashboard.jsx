@@ -56,7 +56,7 @@ const NAVIGATION_ITEMS = [
 
 /* ── Helpers ─────────────────────────────────────────────────── */
 const fmtDate = (d) => d ? new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
-const fmtCurrency = (n) => `₹${(Number(n) || 0).toLocaleString('en-IN')}`;
+const fmtCurrency = (n) => `₹${Math.round(Number(n) || 0).toLocaleString('en-IN')}`;
 
 const exportToCSV = (data, filename = 'export.csv') => {
   if (!data || data.length === 0) return;
@@ -538,7 +538,7 @@ const AdminDashboard = () => {
                 <div className="admin-stat-card">
                   <div className="admin-stat-icon icon-orange"><DollarSign size={20} /></div>
                   <div className="admin-stat-info">
-                    <span className="admin-stat-label">Platform Gross Revenue</span>
+                    <span className="admin-stat-label">Gross Revenue</span>
                     <div className="admin-stat-value">{fmtCurrency(analytics.revenue)}</div>
                     <span className="trend-indicator trend-up"><ArrowUpRight size={12} /> +18.6%</span>
                   </div>
@@ -547,7 +547,7 @@ const AdminDashboard = () => {
                 <div className="admin-stat-card">
                   <div className="admin-stat-icon icon-green"><DollarSign size={20} /></div>
                   <div className="admin-stat-info">
-                    <span className="admin-stat-label">Admin Commission ({settingsForm.commissionRate}%)</span>
+                    <span className="admin-stat-label">Admin Commission</span>
                     <div className="admin-stat-value">{fmtCurrency(analytics.revenue * (Number(settingsForm.commissionRate) / 100))}</div>
                     <span className="trend-indicator trend-up"><ArrowUpRight size={12} /> +{settingsForm.commissionRate}% Cut</span>
                   </div>
@@ -565,7 +565,7 @@ const AdminDashboard = () => {
                 <div className="admin-stat-card">
                   <div className="admin-stat-icon icon-yellow"><DollarSign size={20} /></div>
                   <div className="admin-stat-info">
-                    <span className="admin-stat-label">Escrow Deposits Held</span>
+                    <span className="admin-stat-label">Escrow Deposits</span>
                     <div className="admin-stat-value">{fmtCurrency(rentals.reduce((s, r) => s + (r.securityDepositPaid || 500), 0))}</div>
                     <span className="trend-indicator trend-down"><ArrowDownRight size={12} /> Security Escrow</span>
                   </div>
@@ -573,23 +573,75 @@ const AdminDashboard = () => {
               </div>
 
               {/* Revenue & Financial Summary Panel */}
-              <div className="revenue-row">
-                <div className="admin-panel">
-                  <div className="admin-panel-header">
-                    <h2 className="admin-panel-title"><BarChart2 size={17} style={{ color: 'var(--primary)' }} /> Weekly Revenue & Commission Trends</h2>
-                    <span style={{ fontSize: '0.8rem', color: 'var(--gray-500)' }}>Last 7 Days Performance</span>
-                  </div>
-                  <div className="chart-container">
-                    <div className="chart-bars">
-                      {[{ l: 'Mon', h: '45%' }, { l: 'Tue', h: '65%' }, { l: 'Wed', h: '85%' }, { l: 'Thu', h: '70%' }, { l: 'Fri', h: '95%' }, { l: 'Sat', h: '80%' }, { l: 'Sun', h: '60%' }].map((b, i) => (
-                        <div key={i} className="chart-bar-group">
-                          <div className="chart-bar" style={{ height: b.h }} />
-                          <span className="chart-bar-label">{b.l}</span>
+              {(() => {
+                const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+                const last7DaysMap = [];
+                for (let i = 6; i >= 0; i--) {
+                  const d = new Date();
+                  d.setDate(d.getDate() - i);
+                  const dayName = dayNames[d.getDay()];
+                  const dateStr = d.toISOString().split('T')[0];
+                  
+                  const dayRentals = rentals.filter(r => {
+                    if (!r.createdAt) return false;
+                    const rDate = new Date(r.createdAt).toISOString().split('T')[0];
+                    return rDate === dateStr && r.status !== 'cancelled';
+                  });
+
+                  const dayRevenue = dayRentals.reduce((sum, r) => sum + (r.totalCost || 0), 0);
+                  const commRate = Number(settingsForm.commissionRate) || 10;
+                  const dayCommission = dayRevenue * (commRate / 100);
+
+                  last7DaysMap.push({
+                    label: dayName,
+                    date: dateStr,
+                    revenue: dayRevenue,
+                    commission: dayCommission,
+                    count: dayRentals.length
+                  });
+                }
+                const maxDayRevenue = Math.max(...last7DaysMap.map(d => d.revenue), 1);
+
+                return (
+                  <div className="revenue-row">
+                    <div className="admin-panel">
+                      <div className="admin-panel-header">
+                        <h2 className="admin-panel-title"><BarChart2 size={17} style={{ color: 'var(--primary)' }} /> Weekly Revenue & Commission Trends</h2>
+                        <span style={{ fontSize: '0.8rem', color: 'var(--gray-500)' }}>Last 7 Days Performance (MongoDB Real-Time)</span>
+                      </div>
+                      <div className="chart-container">
+                        <div className="chart-bars" style={{ height: 220, display: 'flex', alignItems: 'flex-end', gap: '0.75rem', paddingBottom: '0.5rem' }}>
+                          {last7DaysMap.map((d, i) => {
+                            const heightPct = maxDayRevenue > 0 ? Math.max((d.revenue / maxDayRevenue) * 100, d.revenue > 0 ? 10 : 8) : 0;
+                            return (
+                              <div key={i} className="chart-bar-group" style={{ flex: 1, height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', alignItems: 'center' }} title={`Revenue: ₹${d.revenue.toLocaleString()} | Comm: ₹${d.commission.toLocaleString()} (${d.count} orders)`}>
+                                <div style={{ flex: 1, width: '100%', display: 'flex', alignItems: 'flex-end', justifyContent: 'center', position: 'relative', paddingBottom: '4px' }}>
+                                  <div 
+                                    className="chart-bar" 
+                                    style={{ 
+                                      height: `${heightPct}%`, 
+                                      width: '75%', 
+                                      maxWidth: '36px', 
+                                      borderRadius: '6px 6px 0 0', 
+                                      background: 'linear-gradient(180deg, var(--primary), #ea580c)',
+                                      transition: 'height 0.4s ease',
+                                      position: 'relative'
+                                    }} 
+                                  >
+                                    {d.revenue > 0 && (
+                                      <span style={{ position: 'absolute', top: -22, left: '50%', transform: 'translateX(-50%)', fontSize: '0.68rem', color: 'var(--primary)', fontWeight: 800, whiteSpace: 'nowrap' }}>
+                                        ₹{d.revenue >= 1000 ? `${(d.revenue / 1000).toFixed(1)}k` : d.revenue}
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                                <span className="chart-bar-label" style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--gray-600)' }}>{d.label}</span>
+                              </div>
+                            );
+                          })}
                         </div>
-                      ))}
+                      </div>
                     </div>
-                  </div>
-                </div>
 
                 <div className="admin-panel">
                   <div className="admin-panel-header">
@@ -615,6 +667,8 @@ const AdminDashboard = () => {
                   </div>
                 </div>
               </div>
+            );
+          })()}
             </>
           )}
 
@@ -713,16 +767,33 @@ const AdminDashboard = () => {
                       <h2 className="admin-panel-title"><TrendingUp size={17} style={{ color: 'var(--primary)' }} /> Monthly Rental Volume (Last 6 Months)</h2>
                     </div>
                     <div className="chart-container">
-                      <div className="chart-bars" style={{ height: 180 }}>
+                      <div className="chart-bars" style={{ height: 220, display: 'flex', alignItems: 'flex-end', gap: '1rem', paddingBottom: '0.5rem' }}>
                         {monthLabels.map((k) => {
                           const { label, count } = monthlyCounts[k];
-                          const heightPct = maxCount > 0 ? Math.max((count / maxCount) * 100, count > 0 ? 6 : 0) : 0;
+                          const heightPct = maxCount > 0 ? Math.max((count / maxCount) * 100, count > 0 ? 8 : 0) : 0;
                           return (
-                            <div key={k} className="chart-bar-group" title={`${count} rentals`}>
-                              <div className="chart-bar" style={{ height: `${heightPct}%`, position: 'relative' }}>
-                                {count > 0 && <span style={{ position: 'absolute', top: -20, left: '50%', transform: 'translateX(-50%)', fontSize: '0.65rem', color: 'var(--primary)', fontWeight: 700 }}>{count}</span>}
+                            <div key={k} className="chart-bar-group" style={{ flex: 1, height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', alignItems: 'center' }} title={`${count} rentals`}>
+                              <div style={{ flex: 1, width: '100%', display: 'flex', alignItems: 'flex-end', justifyContent: 'center', position: 'relative', paddingBottom: '4px' }}>
+                                <div 
+                                  className="chart-bar" 
+                                  style={{ 
+                                    height: `${heightPct}%`, 
+                                    width: '70%', 
+                                    maxWidth: '38px', 
+                                    borderRadius: '6px 6px 0 0', 
+                                    background: 'linear-gradient(180deg, var(--primary), #ea580c)',
+                                    transition: 'height 0.4s ease',
+                                    position: 'relative'
+                                  }} 
+                                >
+                                  {count > 0 && (
+                                    <span style={{ position: 'absolute', top: -22, left: '50%', transform: 'translateX(-50%)', fontSize: '0.72rem', color: 'var(--primary)', fontWeight: 800 }}>
+                                      {count}
+                                    </span>
+                                  )}
+                                </div>
                               </div>
-                              <span className="chart-bar-label">{label}</span>
+                              <span className="chart-bar-label" style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--gray-600)' }}>{label}</span>
                             </div>
                           );
                         })}
@@ -736,16 +807,33 @@ const AdminDashboard = () => {
                       <h2 className="admin-panel-title"><DollarSign size={17} style={{ color: 'var(--success)' }} /> Monthly Revenue (Last 6 Months)</h2>
                     </div>
                     <div className="chart-container">
-                      <div className="chart-bars" style={{ height: 180 }}>
+                      <div className="chart-bars" style={{ height: 220, display: 'flex', alignItems: 'flex-end', gap: '1rem', paddingBottom: '0.5rem' }}>
                         {monthLabels.map((k) => {
                           const { label, revenue } = monthlyCounts[k];
-                          const heightPct = maxRevenue > 0 ? Math.max((revenue / maxRevenue) * 100, revenue > 0 ? 6 : 0) : 0;
+                          const heightPct = maxRevenue > 0 ? Math.max((revenue / maxRevenue) * 100, revenue > 0 ? 8 : 0) : 0;
                           return (
-                            <div key={k} className="chart-bar-group" title={fmtCurrency(revenue)}>
-                              <div className="chart-bar" style={{ height: `${heightPct}%`, background: 'linear-gradient(180deg, #10b981, #065f46)', position: 'relative' }}>
-                                {revenue > 0 && <span style={{ position: 'absolute', top: -20, left: '50%', transform: 'translateX(-50%)', fontSize: '0.6rem', color: 'var(--success)', fontWeight: 700, whiteSpace: 'nowrap' }}>{fmtCurrency(revenue)}</span>}
+                            <div key={k} className="chart-bar-group" style={{ flex: 1, height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', alignItems: 'center' }} title={fmtCurrency(revenue)}>
+                              <div style={{ flex: 1, width: '100%', display: 'flex', alignItems: 'flex-end', justifyContent: 'center', position: 'relative', paddingBottom: '4px' }}>
+                                <div 
+                                  className="chart-bar" 
+                                  style={{ 
+                                    height: `${heightPct}%`, 
+                                    width: '70%', 
+                                    maxWidth: '38px', 
+                                    borderRadius: '6px 6px 0 0', 
+                                    background: 'linear-gradient(180deg, #10b981, #047857)',
+                                    transition: 'height 0.4s ease',
+                                    position: 'relative'
+                                  }} 
+                                >
+                                  {revenue > 0 && (
+                                    <span style={{ position: 'absolute', top: -22, left: '50%', transform: 'translateX(-50%)', fontSize: '0.68rem', color: 'var(--success)', fontWeight: 800, whiteSpace: 'nowrap' }}>
+                                      {fmtCurrency(revenue)}
+                                    </span>
+                                  )}
+                                </div>
                               </div>
-                              <span className="chart-bar-label">{label}</span>
+                              <span className="chart-bar-label" style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--gray-600)' }}>{label}</span>
                             </div>
                           );
                         })}

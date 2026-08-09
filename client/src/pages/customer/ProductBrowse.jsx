@@ -159,14 +159,29 @@ const ProductBrowse = () => {
   const initialCat = searchParams.get('category') || '';
 
   const [products, setProducts] = useState([]);
+  const [categoriesList, setCategoriesList] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState(initialSearch);
   const [categoryFilter, setCategoryFilter] = useState(initialCat);
   const [availabilityOnly, setAvailabilityOnly] = useState(false);
-  const [maxPrice, setMaxPrice] = useState(5000);
+  const [maxPrice, setMaxPrice] = useState(25000);
   const [sortBy, setSortBy] = useState('newest');
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+
+  // Load Categories dynamically from DB
+  useEffect(() => {
+    const loadCats = async () => {
+      try {
+        const { getCategories } = await import('../../services/categoryService');
+        const cats = await getCategories();
+        if (Array.isArray(cats)) setCategoriesList(cats);
+      } catch (e) {
+        console.warn('Category fetch fallback:', e);
+      }
+    };
+    loadCats();
+  }, []);
 
   // Reset page to 1 on filter changes
   useEffect(() => {
@@ -195,7 +210,6 @@ const ProductBrowse = () => {
       });
 
       if (data?.products) {
-        // Apply sorting locally as well in case of state updates
         let sorted = [...data.products];
         if (sortBy === 'price-low') sorted.sort((a, b) => a.pricePerDay - b.pricePerDay);
         if (sortBy === 'price-high') sorted.sort((a, b) => b.pricePerDay - a.pricePerDay);
@@ -203,7 +217,6 @@ const ProductBrowse = () => {
         setProducts(sorted);
         setTotalPages(data.totalPages || 1);
       } else {
-        // Fallback filter over mock catalog
         let filtered = MOCK_FALLBACK_PRODUCTS.filter((p) => {
           const matchQuery =
             !searchQuery ||
@@ -239,7 +252,7 @@ const ProductBrowse = () => {
     setSearchQuery('');
     setCategoryFilter('');
     setAvailabilityOnly(false);
-    setMaxPrice(5000);
+    setMaxPrice(25000);
     setSortBy('newest');
     setSearchParams({});
   };
@@ -267,14 +280,11 @@ const ProductBrowse = () => {
                 <label>Category</label>
                 <select value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)}>
                   <option value="">All Categories</option>
-                  <option value="electronics">Electronics & Tech</option>
-                  <option value="tools-hardware">Tools & Machinery</option>
-                  <option value="gaming">Gaming & Consoles</option>
-                  <option value="vehicles">Vehicles (Cars & Bikes)</option>
-                  <option value="fitness-gym">Gym & Fitness</option>
-                  <option value="home-furniture">Furniture & Home</option>
-                  <option value="apparel-clothing">Clothes & Fashion</option>
-                  <option value="event-party">Event & Party Gear</option>
+                  {categoriesList.map((cat) => (
+                    <option key={cat._id} value={cat.slug || cat._id}>
+                      {cat.name}
+                    </option>
+                  ))}
                 </select>
               </div>
 
@@ -282,13 +292,13 @@ const ProductBrowse = () => {
               <div className="filter-group">
                 <div className="flex justify-between">
                   <label>Max Daily Rate</label>
-                  <span className="price-val">₹{maxPrice}/day</span>
+                  <span className="price-val">₹{maxPrice.toLocaleString()}/day</span>
                 </div>
                 <input
                   type="range"
                   min="200"
-                  max="10000"
-                  step="100"
+                  max="50000"
+                  step="250"
                   value={maxPrice}
                   onChange={(e) => setMaxPrice(Number(e.target.value))}
                 />

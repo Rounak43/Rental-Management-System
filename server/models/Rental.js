@@ -53,6 +53,71 @@ const rentalSchema = new mongoose.Schema(
       default: 0,
       min: 0,
     },
+    lateHours: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+    pickupConfirmedAt: {
+      type: Date,
+    },
+    pickupConfirmedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+    },
+    pickupOTP: {
+      type: String,
+    },
+    pickupQRCode: {
+      type: String,
+    },
+    returnConfirmedAt: {
+      type: Date,
+    },
+    returnCondition: {
+      type: String,
+      enum: ['good', 'like-new', 'fair', 'damaged', 'missing-parts'],
+      default: 'good',
+    },
+    damageReport: {
+      type: String,
+      default: '',
+    },
+    inspectionNotes: {
+      type: String,
+      default: '',
+    },
+    missingAccessories: {
+      type: String,
+      default: '',
+    },
+    damageCharges: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+    refundAmount: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+    depositDeducted: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+    penaltyDeducted: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+    repairRequired: {
+      type: Boolean,
+      default: false,
+    },
+    invoiceId: {
+      type: String,
+    },
   },
   {
     timestamps: true,

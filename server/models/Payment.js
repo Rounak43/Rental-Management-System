@@ -32,8 +32,27 @@ const paymentSchema = new mongoose.Schema(
     },
     type: {
       type: String,
-      enum: ['rental_payment', 'deposit_refund', 'late_fee_charge'],
+      enum: ['rental_payment', 'deposit_refund', 'late_fee_charge', 'penalty_charge'],
       default: 'rental_payment',
+    },
+    lateFeeCollected: {
+      type: Number,
+      default: 0,
+    },
+    depositRefund: {
+      type: Number,
+      default: 0,
+    },
+    penaltyDeducted: {
+      type: Number,
+      default: 0,
+    },
+    invoiceGenerated: {
+      type: Boolean,
+      default: false,
+    },
+    invoiceId: {
+      type: String,
     },
   },
   {

@@ -97,55 +97,85 @@ const PartnerDashboard = () => {
             ) : (
               <>
                 {/* Stats Summary Grid */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '20px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
                   
-                  <div className="glass-card" style={{ padding: '20px', display: 'flex', alignItems: 'center', gap: '16px' }}>
+                  <div className="glass-card" style={{ padding: '18px', display: 'flex', alignItems: 'center', gap: '14px' }}>
                     <div style={{ padding: '12px', background: 'rgba(255, 102, 0, 0.1)', borderRadius: '12px', color: 'var(--primary-color)' }}>
-                      <Package size={24} />
+                      <Package size={22} />
                     </div>
                     <div>
-                      <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: '500' }}>Total Products</span>
-                      <h3 style={{ margin: '4px 0 0', fontSize: '1.6rem', fontWeight: 'bold' }}>{stats.totalProducts}</h3>
+                      <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: '500' }}>Total Equipment</span>
+                      <h3 style={{ margin: '2px 0 0', fontSize: '1.5rem', fontWeight: 'bold' }}>{stats.totalProducts}</h3>
                     </div>
                   </div>
 
-                  <div className="glass-card" style={{ padding: '20px', display: 'flex', alignItems: 'center', gap: '16px' }}>
-                    <div style={{ padding: '12px', background: 'rgba(16, 185, 129, 0.1)', borderRadius: '12px', color: 'var(--color-success)' }}>
-                      <CheckCircle size={24} />
+                  <div className="glass-card" style={{ padding: '18px', display: 'flex', alignItems: 'center', gap: '14px' }}>
+                    <div style={{ padding: '12px', background: 'rgba(16, 185, 129, 0.1)', borderRadius: '12px', color: '#10b981' }}>
+                      <CheckCircle size={22} />
                     </div>
                     <div>
-                      <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: '500' }}>Available Equipment</span>
-                      <h3 style={{ margin: '4px 0 0', fontSize: '1.6rem', fontWeight: 'bold' }}>{stats.availableProducts}</h3>
+                      <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: '500' }}>Available Equipment</span>
+                      <h3 style={{ margin: '2px 0 0', fontSize: '1.5rem', fontWeight: 'bold' }}>{stats.availableProducts}</h3>
                     </div>
                   </div>
 
-                  <div className="glass-card" style={{ padding: '20px', display: 'flex', alignItems: 'center', gap: '16px' }}>
-                    <div style={{ padding: '12px', background: 'rgba(245, 158, 11, 0.1)', borderRadius: '12px', color: 'var(--color-warning)' }}>
-                      <Clock size={24} />
+                  <div className="glass-card" style={{ padding: '18px', display: 'flex', alignItems: 'center', gap: '14px' }}>
+                    <div style={{ padding: '12px', background: 'rgba(59, 130, 246, 0.1)', borderRadius: '12px', color: '#3b82f6' }}>
+                      <TrendingUp size={22} />
                     </div>
                     <div>
-                      <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: '500' }}>Pending Bookings</span>
-                      <h3 style={{ margin: '4px 0 0', fontSize: '1.6rem', fontWeight: 'bold' }}>{stats.pendingRentals}</h3>
+                      <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: '500' }}>Active Rentals</span>
+                      <h3 style={{ margin: '2px 0 0', fontSize: '1.5rem', fontWeight: 'bold' }}>{stats.activeRentals}</h3>
                     </div>
                   </div>
 
-                  <div className="glass-card" style={{ padding: '20px', display: 'flex', alignItems: 'center', gap: '16px' }}>
-                    <div style={{ padding: '12px', background: 'rgba(255, 119, 20, 0.1)', borderRadius: '12px', color: 'var(--color-info)' }}>
-                      <TrendingUp size={24} />
+                  <div className="glass-card" style={{ padding: '18px', display: 'flex', alignItems: 'center', gap: '14px' }}>
+                    <div style={{ padding: '12px', background: 'rgba(245, 158, 11, 0.1)', borderRadius: '12px', color: '#f59e0b' }}>
+                      <Clock size={22} />
                     </div>
                     <div>
-                      <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: '500' }}>Rented Out</span>
-                      <h3 style={{ margin: '4px 0 0', fontSize: '1.6rem', fontWeight: 'bold' }}>{stats.activeRentals}</h3>
+                      <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: '500' }}>Today's Pickups</span>
+                      <h3 style={{ margin: '2px 0 0', fontSize: '1.5rem', fontWeight: 'bold' }}>{stats.todayPickups || 0}</h3>
                     </div>
                   </div>
 
-                  <div className="glass-card" style={{ padding: '20px', display: 'flex', alignItems: 'center', gap: '16px', gridColumn: 'span 2' }}>
-                    <div style={{ padding: '12px', background: 'rgba(255, 102, 0, 0.1)', borderRadius: '12px', color: 'var(--primary-color)' }}>
-                      <DollarSign size={24} />
+                  <div className="glass-card" style={{ padding: '18px', display: 'flex', alignItems: 'center', gap: '14px' }}>
+                    <div style={{ padding: '12px', background: 'rgba(139, 92, 246, 0.1)', borderRadius: '12px', color: '#8b5cf6' }}>
+                      <CalendarCheck size={22} />
                     </div>
                     <div>
-                      <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: '500' }}>Accumulated Revenue</span>
-                      <h3 style={{ margin: '4px 0 0', fontSize: '1.8rem', fontWeight: '800', color: 'var(--primary-color)' }}>₹{stats.totalRevenue.toLocaleString()}</h3>
+                      <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: '500' }}>Today's Returns</span>
+                      <h3 style={{ margin: '2px 0 0', fontSize: '1.5rem', fontWeight: 'bold' }}>{stats.todayReturns || 0}</h3>
+                    </div>
+                  </div>
+
+                  <div className="glass-card" style={{ padding: '18px', display: 'flex', alignItems: 'center', gap: '14px' }}>
+                    <div style={{ padding: '12px', background: 'rgba(239, 68, 68, 0.1)', borderRadius: '12px', color: '#ef4444' }}>
+                      <Clock size={22} />
+                    </div>
+                    <div>
+                      <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: '500' }}>Overdue / Late</span>
+                      <h3 style={{ margin: '2px 0 0', fontSize: '1.5rem', fontWeight: 'bold', color: '#ef4444' }}>{stats.lateRentals || 0}</h3>
+                    </div>
+                  </div>
+
+                  <div className="glass-card" style={{ padding: '18px', display: 'flex', alignItems: 'center', gap: '14px' }}>
+                    <div style={{ padding: '12px', background: 'rgba(239, 68, 68, 0.1)', borderRadius: '12px', color: '#ef4444' }}>
+                      <DollarSign size={22} />
+                    </div>
+                    <div>
+                      <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: '500' }}>Late Fee Revenue</span>
+                      <h3 style={{ margin: '2px 0 0', fontSize: '1.5rem', fontWeight: 'bold', color: '#ef4444' }}>₹{(stats.lateFeeRevenue || 0).toLocaleString()}</h3>
+                    </div>
+                  </div>
+
+                  <div className="glass-card" style={{ padding: '18px', display: 'flex', alignItems: 'center', gap: '14px' }}>
+                    <div style={{ padding: '12px', background: 'rgba(16, 185, 129, 0.1)', borderRadius: '12px', color: '#10b981' }}>
+                      <DollarSign size={22} />
+                    </div>
+                    <div>
+                      <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: '500' }}>Total Revenue</span>
+                      <h3 style={{ margin: '2px 0 0', fontSize: '1.5rem', fontWeight: 'bold', color: '#10b981' }}>₹{(stats.totalRevenue || 0).toLocaleString()}</h3>
                     </div>
                   </div>
 

@@ -5,6 +5,11 @@ export const getVendorDashboard = async () => {
   return response.data;
 };
 
+export const getVendorAnalytics = async () => {
+  const response = await api.get('/vendor/analytics');
+  return response.data;
+};
+
 export const getVendorProfile = async () => {
   const response = await api.get('/vendor/profile');
   return response.data;

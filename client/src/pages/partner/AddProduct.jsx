@@ -26,7 +26,9 @@ const AddProduct = () => {
     description: '',
     pricePerDay: '',
     securityDeposit: '',
-    lateFee: '',
+    lateFeePerHour: '50',
+    gracePeriod: '2',
+    maximumLateFee: '500',
     availableQuantity: '1',
     condition: 'new',
     location: '',
@@ -244,14 +246,41 @@ const AddProduct = () => {
                 </div>
 
                 <div className="form-group">
-                  <label>Late Fee Charge (₹/Day)</label>
+                  <label>Late Fee Charge (₹/Hour) *</label>
                   <input 
                     type="number" 
-                    name="lateFee" 
-                    placeholder="₹100 (Optional, defaults to ₹10)" 
+                    name="lateFeePerHour" 
+                    placeholder="₹50" 
                     min="0"
-                    value={formData.lateFee} 
+                    value={formData.lateFeePerHour} 
                     onChange={handleInputChange} 
+                    required
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label>Grace Period (Hours) *</label>
+                  <input 
+                    type="number" 
+                    name="gracePeriod" 
+                    placeholder="2" 
+                    min="0"
+                    value={formData.gracePeriod} 
+                    onChange={handleInputChange} 
+                    required
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label>Maximum Late Fee Penalty (₹) *</label>
+                  <input 
+                    type="number" 
+                    name="maximumLateFee" 
+                    placeholder="₹500" 
+                    min="0"
+                    value={formData.maximumLateFee} 
+                    onChange={handleInputChange} 
+                    required
                   />
                 </div>
 
