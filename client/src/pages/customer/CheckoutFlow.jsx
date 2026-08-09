@@ -114,37 +114,53 @@ const CheckoutFlow = () => {
     try {
       const selectedAddr = addresses.find((a) => a.id === selectedAddressId) || addresses[0];
 
-      // 1. Process payment via Axios payment service
-      const paymentRes = await processPayment({
-        amount: grandTotal,
-        paymentMethod,
-        transactionId: `TXN_${Date.now()}`,
+      // Create a rental agreement for every unit in the cart. A cart is local
+      // state only; these records are what make a booking visible to its vendor.
+      const rentalPayloads = cartItems.flatMap((item) => {
+        const productId = item.product?._id;
+        if (!productId) {
+          throw new Error('One of the cart items is no longer available. Please remove it and try again.');
+        }
+
+        const days = Math.max(1, Number(item.duration?.days) || 1);
+        const start = item.duration?.startDate ? new Date(item.duration.startDate) : new Date();
+        const end = item.duration?.endDate
+          ? new Date(item.duration.endDate)
+          : new Date(start.getTime() + days * 24 * 60 * 60 * 1000);
+
+        return Array.from({ length: Math.max(1, Number(item.quantity) || 1) }, () => ({
+          product: productId,
+          startDate: start.toISOString(),
+          endDate: end.toISOString(),
+        }));
       });
 
-      // 2. Create rental agreement orders in backend
-      let createdRentalId = `RENT_${Date.now()}`;
-      try {
-        const rentalPayload = {
-          product: cartItems[0]?.product?._id || 'prod1',
-          startDate: cartItems[0]?.duration?.startDate || new Date().toISOString(),
-          endDate: cartItems[0]?.duration?.endDate || new Date(Date.now() + 86400000 * 3).toISOString(),
-          totalAmount: grandTotal,
-          securityDeposit: totals.totalDeposit,
-          shippingAddress: selectedAddr,
-        };
-        const rentalRes = await createRental(rentalPayload);
-        if (rentalRes?._id) createdRentalId = rentalRes._id;
-      } catch (err) {
-        console.warn('Backend rental record note:', err);
+      const rentals = await Promise.all(rentalPayloads.map((payload) => createRental(payload)));
+      if (rentals.some((rental) => !rental?._id)) {
+        throw new Error('We could not create all rental agreements. Please try again.');
       }
 
-      // 3. Navigate to Payment Success screen
+      // Store one payment entry per rental so the vendor revenue ledger can
+      // reliably look up payments through the vendor's rented products.
+      const transactionBase = `TXN_${Date.now()}`;
+      await Promise.all(
+        rentals.map((rental, index) =>
+          processPayment({
+            amount: rental.totalCost,
+            paymentMethod,
+            transactionId: `${transactionBase}_${index + 1}`,
+            rental: rental._id,
+          })
+        )
+      );
+
+      // Navigate to Payment Success screen only after backend records exist.
       clearCart();
       toast.success('Payment completed successfully!');
       navigate('/payment-success', {
         state: {
           orderId: `ORD-${Date.now().toString().slice(-6)}`,
-          rentalId: createdRentalId,
+          rentalId: rentals[0]._id,
           invoiceNumber: `INV-2026-${Math.floor(1000 + Math.random() * 9000)}`,
           estimatedDelivery: expectedDate,
           totalPaid: grandTotal,

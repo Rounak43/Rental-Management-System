@@ -105,34 +105,75 @@ export const login = async (req, res, next) => {
     }
 
     const cleanEmail = email.toLowerCase().trim();
+    console.log(`[Login] Attempt for: ${cleanEmail}`);
 
-    // Find user
+    // Find user — use lean:false so we get a real Mongoose doc
+    // We must NOT use .select('+password') because password has no select:false in schema
+    // Instead we verify _doc has password directly
     const user = await User.findOne({ email: cleanEmail });
 
-    // Validate credentials
-    if (user && (await bcrypt.compare(password, user.password))) {
-      let vendorProfile = null;
-
-      if (user.role === 'vendor') {
-        vendorProfile = await VendorProfile.findOne({ user: user._id });
-      }
-
-      return res.status(200).json({
-        _id: user._id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        phone: user.phone,
-        token: generateToken(user._id),
-        vendorProfile,
-      });
-    } else {
+    // Step 1 — User not found
+    if (!user) {
+      console.log(`[Login] FAIL — No user found with email: ${cleanEmail}`);
       return res.status(401).json({ message: 'Invalid credentials' });
     }
+
+    console.log(`[Login] User found: ${user._id} | role: ${user.role} | authProvider: ${user.authProvider} | hasPassword: ${!!user._doc?.password}`);
+
+    // Step 2 — User exists but was created via Google (no password stored)
+    if (!user._doc?.password && user.authProvider === 'google') {
+      console.log(`[Login] FAIL — Google-only account, no password set`);
+      return res.status(401).json({
+        message: 'This account was created with Google Sign-In. Please use the "Continue with Google" button to log in.',
+        authProvider: 'google',
+      });
+    }
+
+    // Step 3 — User has no password at all (edge case)
+    if (!user._doc?.password) {
+      console.log(`[Login] FAIL — No password stored for user`);
+      return res.status(401).json({ message: 'Invalid credentials. Please reset your password or use Google sign-in.' });
+    }
+
+    // Step 4 — Compare passwords
+    let isMatch = false;
+    try {
+      isMatch = await bcrypt.compare(password, user._doc.password);
+      console.log(`[Login] bcrypt.compare result: ${isMatch}`);
+    } catch (bcryptErr) {
+      console.error(`[Login] bcrypt.compare threw:`, bcryptErr.message);
+      return res.status(500).json({ message: 'Authentication error. Please try again.' });
+    }
+
+    if (!isMatch) {
+      console.log(`[Login] FAIL — Password mismatch for ${cleanEmail}`);
+      return res.status(401).json({ message: 'Invalid credentials' });
+    }
+
+    // Step 5 — Success
+    let vendorProfile = null;
+    if (user.role === 'vendor') {
+      vendorProfile = await VendorProfile.findOne({ user: user._id });
+    }
+
+    console.log(`[Login] SUCCESS — ${cleanEmail} (${user.role})`);
+
+    return res.status(200).json({
+      _id: user._id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      phone: user.phone,
+      profileImage: user.profileImage,
+      token: generateToken(user._id),
+      vendorProfile,
+    });
   } catch (error) {
+    console.error(`[Login] Unexpected error:`, error.message);
     next(error);
   }
 };
+
 
 // @desc    Get current logged in user profile
 // @route   GET /api/auth/me

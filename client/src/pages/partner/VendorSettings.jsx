@@ -30,13 +30,9 @@ import {
 } from 'lucide-react';
 import '../customer/CustomerSettings.css';
 
-const API_BASE = 'http://localhost:5000';
+import getImageUrl from '../../utils/imageUrl';
 
-const getUrl = (p) => {
-  if (!p) return '';
-  if (p.startsWith('http')) return p;
-  return `${API_BASE}${p.startsWith('/') ? '' : '/'}${p}`;
-};
+
 
 const VendorSettings = () => {
   const { user, setUser, logout } = useContext(AuthContext);
@@ -109,12 +105,12 @@ const VendorSettings = () => {
           phone: profile.contactPhone || user?.phone || '',
           website: profile.website || '',
         });
-        setLogoPreview(getUrl(profile.logo));
+        setLogoPreview(getImageUrl(profile.logo));
         setOwnerData({
           ownerName: profile.ownerName || user?.name || '',
           phone: profile.contactPhone || '',
         });
-        setAvatarPreview(getUrl(user?.profileImage));
+        setAvatarPreview(getImageUrl(user?.profileImage));
         setProfileLoaded(true);
       } catch (e) {
         toast.error('Could not load vendor profile.');
@@ -150,7 +146,7 @@ const VendorSettings = () => {
         const fd = new FormData();
         fd.append('logo', logoFile);
         const res = await uploadVendorLogo(fd);
-        finalLogo = getUrl(res.logo);
+        finalLogo = getImageUrl(res.logo);
         setLogoPreview(finalLogo);
         setLogoFile(null);
       }
@@ -192,7 +188,7 @@ const VendorSettings = () => {
         const fd = new FormData();
         fd.append('avatar', avatarFile);
         const res = await uploadVendorAvatar(fd);
-        setAvatarPreview(getUrl(res.avatar));
+        setAvatarPreview(getImageUrl(res.avatar));
         setUser((prev) => ({ ...prev, profileImage: res.avatar }));
         setAvatarFile(null);
       }

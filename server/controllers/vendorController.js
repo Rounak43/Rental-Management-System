@@ -1,8 +1,26 @@
 import bcrypt from 'bcryptjs';
+import fs from 'fs';
+import path from 'path';
 import Product from '../models/Product.js';
 import Rental from '../models/Rental.js';
 import User from '../models/User.js';
 import VendorProfile from '../models/VendorProfile.js';
+
+// Helper: delete a file from disk safely
+const deleteFile = (filePath) => {
+  if (!filePath) return;
+  // filePath is like '/uploads/avatars/avatar-xxx.jpg'
+  // Convert to a relative path from server root
+  const relativePath = filePath.startsWith('/') ? filePath.slice(1) : filePath;
+  const absPath = path.resolve(relativePath);
+  fs.unlink(absPath, (err) => {
+    if (err && err.code !== 'ENOENT') {
+      console.warn('[deleteFile] Could not delete:', absPath, err.message);
+    } else {
+      console.log('[deleteFile] Deleted:', absPath);
+    }
+  });
+};
 
 // @desc    Get vendor dashboard stats
 // @route   GET /api/vendor/dashboard
@@ -129,6 +147,9 @@ export const uploadVendorLogo = async (req, res, next) => {
       });
     }
 
+    // Delete old logo file from disk before overwriting
+    if (profile.logo) deleteFile(profile.logo);
+
     profile.logo = logoPath;
     await profile.save();
 
@@ -148,6 +169,10 @@ export const uploadVendorAvatar = async (req, res, next) => {
     }
 
     const avatarPath = `/uploads/avatars/${req.file.filename}`;
+
+    // Delete old avatar file from disk before overwriting
+    const existingUser = await User.findById(req.user._id);
+    if (existingUser?.profileImage) deleteFile(existingUser.profileImage);
 
     await User.findByIdAndUpdate(req.user._id, { profileImage: avatarPath });
 

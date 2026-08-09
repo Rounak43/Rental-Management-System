@@ -67,11 +67,12 @@ const userSchema = new mongoose.Schema(
   }
 );
 
-// Automatically remove password when sending JSON responses
+// Strip password from JSON responses but NOT from live document instances
 userSchema.set('toJSON', {
   transform: (doc, ret) => {
-    delete ret.password;
-    return ret;
+    const obj = { ...ret }; // shallow copy — never mutate ret/doc in place
+    delete obj.password;
+    return obj;
   },
 });
 
