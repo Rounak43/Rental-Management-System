@@ -27,8 +27,15 @@ const PartnerLogin = () => {
       toast.success(`Welcome Partner, ${loggedUser.name}!`);
       navigate('/partner/dashboard');
     } catch (err) {
-      setErrorMsg(err.message || 'Vendor login failed. Please check credentials.');
-      toast.error(err.message || 'Login error');
+      const msg = err?.response?.data?.message || err.message || 'Vendor login failed. Please check credentials.';
+      const isGoogleAccount = err?.response?.data?.authProvider === 'google' || msg.includes('Google Sign-In');
+      if (isGoogleAccount) {
+        setErrorMsg('This account uses Google Sign-In. Please use the button below.');
+        toast.error('Please use the "Continue with Google" button.');
+      } else {
+        setErrorMsg(msg);
+        toast.error(msg);
+      }
     } finally {
       setLoading(false);
     }

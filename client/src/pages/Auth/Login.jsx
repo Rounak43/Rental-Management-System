@@ -38,8 +38,16 @@ const Login = () => {
         navigate('/dashboard');
       }
     } catch (err) {
-      setErrorMsg(err.message || 'Login failed. Please check your credentials.');
-      toast.error(err.message || 'Login failed');
+      // Check for Google-account specific error from backend
+      const msg = err?.response?.data?.message || err.message || 'Login failed. Please check your credentials.';
+      const isGoogleAccount = err?.response?.data?.authProvider === 'google' || msg.includes('Google Sign-In');
+      if (isGoogleAccount) {
+        setErrorMsg('This account uses Google Sign-In. Please use the button below.');
+        toast.error('Please use the "Continue with Google" button.');
+      } else {
+        setErrorMsg(msg);
+        toast.error(msg);
+      }
     } finally {
       setLoading(false);
     }

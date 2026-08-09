@@ -13,10 +13,6 @@ import { upload } from '../middleware/uploadMiddleware.js';
 
 const router = express.Router();
 
-// Public routes
-router.get('/', getProducts);
-router.get('/:id', getProductById);
-
 // Vendor - own product management
 router.get('/vendor/my-products', protect, vendor, getMyProducts);
 router.get('/vendor', protect, vendor, getMyProducts);
@@ -37,5 +33,10 @@ router.put('/:id', protect, vendor, updateProduct);
 router.patch('/status', protect, vendor, updateProductStatus);
 router.patch('/:id/status', protect, vendor, updateProductStatus);
 router.delete('/:id', protect, vendor, deleteProduct);
+
+// Public routes. Keep the parameterized route last so it does not intercept
+// vendor endpoints such as /vendor/my-products.
+router.get('/', getProducts);
+router.get('/:id', getProductById);
 
 export default router;

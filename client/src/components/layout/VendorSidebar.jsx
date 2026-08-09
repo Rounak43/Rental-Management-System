@@ -15,13 +15,7 @@ import {
 } from 'lucide-react';
 import './Sidebar.css';
 
-const API_BASE = 'http://localhost:5000';
-
-const getUrl = (p) => {
-  if (!p) return '';
-  if (p.startsWith('http')) return p;
-  return `${API_BASE}${p.startsWith('/') ? '' : '/'}${p}`;
-};
+import getImageUrl from '../../utils/imageUrl';
 
 const VendorSidebar = () => {
   const { logout, user } = useContext(AuthContext);
@@ -35,12 +29,13 @@ const VendorSidebar = () => {
     getVendorProfile()
       .then((profile) => {
         setCompanyName(profile.companyName || user?.name || 'Partner Account');
-        setCompanyLogo(getUrl(profile.logo));
+        setCompanyLogo(getImageUrl(profile.logo));
       })
       .catch(() => {
         setCompanyName(user?.name || 'Partner Account');
       });
   }, [user]);
+
 
   const handleLogout = async () => {
     try {
