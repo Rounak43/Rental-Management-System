@@ -43,12 +43,12 @@ const EditProduct = () => {
   const getImageUrl = (imagePath) => {
     if (!imagePath) return '';
     if (imagePath.startsWith('http')) return imagePath;
-    const backendBase = 'http://localhost:5000';
+    const backendBase = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001/api').replace(/\/api\/?$/, '');
     return `${backendBase}${imagePath.startsWith('/') ? '' : '/'}${imagePath}`;
   };
 
   const getCleanPath = (imageUrl) => {
-    const backendBase = 'http://localhost:5000';
+    const backendBase = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001/api').replace(/\/api\/?$/, '');
     if (imageUrl.startsWith(backendBase)) {
       return imageUrl.replace(backendBase, '');
     }

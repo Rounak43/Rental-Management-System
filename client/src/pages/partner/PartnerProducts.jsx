@@ -32,7 +32,7 @@ const PartnerProductCard = ({ prod, onEdit, onDelete, onTogglePublish, onDuplica
   const getImageUrl = (imagePath) => {
     if (!imagePath) return '';
     if (imagePath.startsWith('http')) return imagePath;
-    const backendBase = 'http://localhost:5000';
+    const backendBase = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001/api').replace(/\/api\/?$/, '');
     return `${backendBase}${imagePath.startsWith('/') ? '' : '/'}${imagePath}`;
   };
 
@@ -212,9 +212,9 @@ const PartnerProducts = () => {
 
   const handleTogglePublish = async (prod) => {
     try {
-      const updated = await updateProductStatus(prod._id);
-      if (updated) {
-        toast.success(`Product is now ${updated.isPublished ? 'published' : 'hidden'}.`);
+      const result = await updateProductStatus(prod._id);
+      if (result?.product) {
+        toast.success(`Product is now ${result.product.isPublished ? 'published' : 'hidden'}.`);
         loadProducts();
       }
     } catch (err) {

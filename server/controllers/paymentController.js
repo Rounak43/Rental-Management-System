@@ -7,13 +7,26 @@ import Product from '../models/Product.js';
 // @access  Private
 export const processPayment = async (req, res, next) => {
   try {
-    const { amount, paymentMethod, transactionId } = req.body;
+    const { amount, paymentMethod, transactionId, rental: rentalId } = req.body;
 
     if (!amount || !paymentMethod || !transactionId) {
       return res.status(400).json({ message: 'Amount, payment method and transaction ID are required' });
     }
 
+    let rental = null;
+    if (rentalId) {
+      rental = await Rental.findById(rentalId);
+      if (!rental) {
+        return res.status(404).json({ message: 'Rental agreement not found' });
+      }
+
+      if (req.user.role !== 'admin' && rental.user.toString() !== req.user._id.toString()) {
+        return res.status(403).json({ message: 'Not authorized to pay for this rental' });
+      }
+    }
+
     const payment = await Payment.create({
+      rental: rental?._id,
       user: req.user._id,
       amount: Number(amount),
       paymentMethod,
