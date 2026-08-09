@@ -1,3 +1,4 @@
+import mongoose from 'mongoose';
 import User from '../models/User.js';
 
 // @desc    Update user profile
@@ -88,6 +89,10 @@ export const getAllUsers = async (req, res, next) => {
 // @access  Private (Admin or Self)
 export const deleteUser = async (req, res, next) => {
   try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(404).json({ message: 'User account not found' });
+    }
+
     const userToDelete = await User.findById(req.params.id);
 
     if (!userToDelete) {

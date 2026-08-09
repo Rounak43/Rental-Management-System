@@ -29,8 +29,12 @@ router.post('/upload', protect, vendor, upload.array('images', 1), (req, res) =>
   }
 });
 router.post('/', protect, vendor, createProduct);
-router.put('/:id', protect, vendor, updateProduct);
 router.patch('/status', protect, vendor, updateProductStatus);
+
+// Public & Parametric routes
+router.get('/', getProducts);
+router.get('/:id', getProductById);
+router.put('/:id', protect, vendor, updateProduct);
 router.patch('/:id/status', protect, vendor, updateProductStatus);
 router.delete('/:id', protect, vendor, deleteProduct);
 

@@ -120,7 +120,7 @@ const PartnerRevenue = () => {
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px' }}>
                   
                   <div className="glass-card" style={{ padding: '20px' }}>
-                    <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: '600' }}>Today's Revenue</span>
+                    <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: '600' }}>Today&apos;s Revenue</span>
                     <h3 style={{ margin: '8px 0', fontSize: '1.75rem', fontWeight: '800', color: 'var(--primary-color)' }}>₹{metrics.todayRevenue.toLocaleString()}</h3>
                     <span style={{ fontSize: '0.75rem', color: 'var(--color-success)', display: 'flex', alignItems: 'center', gap: '2px' }}>
                       <ArrowUpRight size={12} /> Live sales
